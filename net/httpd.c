@@ -756,7 +756,9 @@ static void httpd_cleanup(struct httpd_instance *inst, struct tcb_cb_data *cbd)
 static void httpd_tcp_callback(struct tcb_cb_data *cbd)
 {
 	struct httpd_instance *inst;
-	run_command("gpio clear 14", 0);
+	char cmd_ledon[16] = "gpio clear ";
+	strcat(cmd_ledon, CONFIG_MT7621_GPIO_LED);
+	run_command(cmd_ledon, 0);
 
 	inst = httpd_find_instance(ntohs(cbd->dp));
 	if (!inst) {

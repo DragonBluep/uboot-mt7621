@@ -566,18 +566,23 @@ restart:
 	 *	Main packet reception loop.  Loop receiving packets until
 	 *	someone sets `net_state' to a state that terminates.
 	 */
+	char cmd_ledon[16] = "gpio clear ";
+	char cmd_ledoff[16] = "gpio set ";
+	strcat(cmd_ledon, CONFIG_MT7621_GPIO_LED);
+	strcat(cmd_ledoff, CONFIG_MT7621_GPIO_LED);
+
 	for (;;) {
 		WATCHDOG_RESET();
 		ui_num++;
 		if(750000 == ui_num)
 		{
-			run_command("gpio clear 14", 0);
+			run_command(cmd_ledon, 0);
 		}
 
 		
 		if(1500000 == ui_num)
 		{
-			run_command("gpio set 14", 0);
+			run_command(cmd_ledoff, 0);
 
 			ui_num = 0;
 		}

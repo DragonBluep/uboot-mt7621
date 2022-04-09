@@ -44,6 +44,23 @@ config TPL_TEXT_BASE
 	default 0xbfc00000 if SPI_BOOT
 
 choice
+	prompt "Router select"
+
+config ROUTER_MEDIATEK_RFB
+	bool "Mediatek reference board"
+	select BOARD_MT7621_RFB
+
+config ROUTER_MERCURY_MAC2600R
+	bool "MERCURY MAC2600R"
+	select BOARD_MT7621_RFB
+
+config ROUTER_ZTE_E8820V2
+	bool "ZTE E8820 V2"
+	select BOARD_MT7621_RFB
+
+endchoice
+
+choice
 	prompt "Board select"
 
 config BOARD_MT7621_RFB
@@ -55,6 +72,18 @@ config BOARD_MT7621_NAND_RFB
 	select SOC_MT7621
 
 endchoice
+
+config MT7621_GPIO_LED
+	string "System LED pin"
+	default "14" if ROUTER_MEDIATEK_RFB
+	default "25" if ROUTER_MERCURY_MAC2600R
+	default "29" if ROUTER_ZTE_E8820V2
+
+config MT7621_GPIO_KEY
+	int "Reset button pin"
+	default 15 if ROUTER_MEDIATEK_RFB
+	default 8 if ROUTER_MERCURY_MAC2600R
+	default 18 if ROUTER_ZTE_E8820V2
 
 config SPL_ALIGN_TO
 	hex "SPL alignment size"

@@ -204,10 +204,13 @@ static inline int menu_interactive_choice(struct menu *m, void **choice)
 
 		menu_display(m);
 	
-		run_command("gpio clear 14", 0);
-		run_command("gpio set 13", 0);
-		run_command("gpio set 16", 0);
-		unsigned int gpio = 15;
+		char cmd_ledon[16] = "gpio clear ";
+		strcat(cmd_ledon, CONFIG_MT7621_GPIO_LED);
+
+		run_command(cmd_ledon, 0);
+		// run_command("gpio set 13", 0);
+		// run_command("gpio set 16", 0);
+		unsigned int gpio = CONFIG_MT7621_GPIO_KEY;
 		unsigned int reset_value = 0;
 		int i=0;
 		for(i=0;i<3;i++)
