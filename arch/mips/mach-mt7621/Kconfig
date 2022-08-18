@@ -1,0 +1,98 @@
+menu "MediaTek MT7621 platform"
+	depends on MACH_MT7621
+
+config SYS_SOC
+	default "mt7621"
+
+config SYS_DCACHE_SIZE
+	default 32768
+
+config SYS_DCACHE_LINE_SIZE
+	default 32
+
+config SYS_ICACHE_SIZE
+	default 32768
+
+config SYS_ICACHE_LINE_SIZE
+	default 32
+
+config SOC_MT7621
+	bool
+	select TARGET_MT7621
+	help
+	  Support MediaTek MT7621 SoC.
+
+config SYS_TEXT_BASE
+	default 0xbfc00000 if !SPL
+	default 0x80200000 if SPL
+
+config START_S_PATH
+	string
+	default "arch/mips/mach-mt7621"
+
+config SPL_START_S_PATH
+	string
+	default "arch/mips/mach-mt7621/spl"
+
+config SPL_TEXT_BASE
+	hex
+	default 0xbfc00000 if SPI_BOOT && !TPL
+	default 0x80100000 if NAND_BOOT || TPL
+
+config TPL_TEXT_BASE
+	hex
+	default 0xbfc00000 if SPI_BOOT
+
+choice
+	prompt "Board select"
+
+config BOARD_MT7621_RFB
+	bool "MT7621 reference board"
+	select SOC_MT7621
+
+config BOARD_MT7621_NAND_RFB
+	bool "MT7621 reference board (NAND)"
+	select SOC_MT7621
+
+endchoice
+
+config SPL_ALIGN_TO
+	hex "SPL alignment size"
+	default 0x10000 if SPI_BOOT
+	default 0x20000 if NAND_BOOT
+	depends on SPL
+	help
+	  Pad the SPL part to the closest size which is aligned with
+	  this size.
+	  Set to 0 if no padding is needed.
+
+config MAX_U_BOOT_SIZE
+	hex "Maximum U-Boot size"
+	default 0x30000 if SPI_BOOT
+	default 0x80000 if NAND_BOOT
+	depends on SPL
+	help
+	  Maximum U-Boot size for SPL to search for the U-Boot SPL image
+
+config MT7621_MEMTEST
+	bool "Do optional memtest after DRAM initialization"
+	depends on MACH_MT7621
+
+config MT7621_SINGLE_CORE
+	bool "Force to use single MIPS core"
+	depends on MACH_MT7621
+	default n
+
+config MT7621_SINGLE_VPE
+	bool "Force to use single VPE per core"
+	depends on MACH_MT7621
+	default n
+
+source "arch/mips/mach-mt7621/dramc/Kconfig"
+
+
+source "board/ralink/mt7621_rfb/Kconfig"
+source "board/ralink/mt7621_nand_rfb/Kconfig"
+
+
+endmenu

@@ -1,0 +1,8 @@
+
+config MTKAUTOBOOT_DELAY
+	int "Delay for mtkautoboot command (seconds)"
+	range 1 60
+	default 3
+	help
+	  This is the default delay value for mtkautoboot command.
+	  It can be overrided by environment variable "mtkautoboot.delay"

@@ -1,0 +1,106 @@
+menu "CPU & DDR configuration"
+
+config MT7621_CPU_FREQ
+	int "CPU Frequency (MHz)"
+	range 400 1200
+	default 880
+
+choice
+	prompt "DRAM Frequency"
+	default MT7621_DRAM_FREQ_1200
+
+config MT7621_DRAM_FREQ_400
+	bool "400MHz"
+
+config MT7621_DRAM_FREQ_800
+	bool "800MHz"
+
+config MT7621_DRAM_FREQ_1066
+	bool "1066MHz"
+
+config MT7621_DRAM_FREQ_1200
+	bool "1200MHz"
+
+endchoice
+
+config MT7621_DRAM_FREQ
+	int
+	default "400" if MT7621_DRAM_FREQ_400
+	default "800" if MT7621_DRAM_FREQ_800
+	default "1066" if MT7621_DRAM_FREQ_1066
+	default "1200" if MT7621_DRAM_FREQ_1200
+	default "1200"
+
+config MT7621_DRAM_INIT_USER_PARAM_FIRST
+	bool "Use user-prefered DRAM initialization parameters first"
+	default n
+
+choice
+	prompt "Source of DRAM init parameters"
+	default MT7621_DRAM_INIT_USER_PARAM_PREDEFINED
+	depends on MT7621_DRAM_INIT_USER_PARAM_FIRST
+
+config MT7621_DRAM_INIT_USER_PARAM_PREDEFINED
+	bool "Pre-defined"
+
+config MT7621_DRAM_INIT_USER_PARAM_BOARD_PROVIDED
+	bool "Board-provided"
+
+endchoice
+
+choice
+	prompt "Prefered DDR2 init parameters"
+	default MT7621_DRAM_DDR2_1024M
+	depends on MT7621_DRAM_INIT_USER_PARAM_PREDEFINED
+
+config MT7621_DRAM_DDR2_512M
+	bool "64MB"
+
+config MT7621_DRAM_DDR2_1024M
+	bool "128MB"
+
+config MT7621_DRAM_DDR2_512M_W9751G6KB_A02_1066MHZ
+	bool "W9751G6KB_A02 @ 1066MHz (64MB)"
+
+config MT7621_DRAM_DDR2_1024M_W971GG6KB25_800MHZ
+	bool "W971GG6KB25 @ 800MHz (128MB)"
+
+config MT7621_DRAM_DDR2_1024M_W971GG6KB18_1066MHZ
+	bool "W971GG6KB18 @ 1066MHz (128MB)"
+
+endchoice
+
+choice
+	prompt "Prefered DDR3 init parameters"
+	default MT7621_DRAM_DDR3_2048M
+	depends on MT7621_DRAM_INIT_USER_PARAM_PREDEFINED
+
+config MT7621_DRAM_DDR3_1024M
+	bool "128MB"
+
+config MT7621_DRAM_DDR3_1024M_KGD
+	bool "128MB KGD"
+
+config MT7621_DRAM_DDR3_2048M
+	bool "256MB"
+
+config MT7621_DRAM_DDR3_4096M
+	bool "512MB"
+
+endchoice
+
+config MT7621_DRAM_INIT_AUTO_PROBE
+	bool "Do auto probing if user-prefered parameters fails"
+	depends on MT7621_DRAM_INIT_USER_PARAM_FIRST
+	default y
+
+config MT7621_RESET_WHEN_DRAMC_FAIL
+	bool "Reset the chip if failed to initialize DRAM"
+	depends on MACH_MT7621
+	default y
+
+config MT7621_DRAMC_DEBUG
+	bool "Enable verbose output during DRAMC initialization"
+	depends on MACH_MT7621
+
+endmenu

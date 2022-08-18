@@ -1,0 +1,44 @@
+if BOARD_MT7621_NAND_RFB
+
+config SYS_VENDOR
+	default "ralink"
+
+config SYS_BOARD
+	default "mt7621_nand_rfb"
+
+config SYS_CONFIG_NAME
+	default "mt7621_nand"
+
+config CRC32C_BE
+	bool
+	default y
+
+config COMPAT_NAND_BBT
+	bool "Use compatible NAND bad block management"
+	default n
+	select MTD_DEVICE
+	select LAST_STAGE_INIT
+	help
+	  Select this if you want to use bad block table and management
+	  which are compatible with the legacy Uboot 1.1.3
+	  Enabling this option will create a MTD translation layer on
+	  the original MTD of the NAND device.
+
+config COMPAT_NAND_BBT_WB
+	bool "Write back BBT when necessary"
+	default n
+	depends on COMPAT_NAND_BBT
+	help
+	  Select this if you want full compatiblility with linux kernel
+	  using legacy NAND driver
+
+config DEFAULT_NAND_KERNEL_OFFSET
+	hex "Default kernel offset in the NAND"
+	default 0x140000
+	help
+	  This is the fallback value if mtkboardboot command can't
+	  boot from MTD partition directly.
+
+source "board/ralink/common/Kconfig"
+
+endif

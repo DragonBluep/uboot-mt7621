@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright (C) 2018 MediaTek Inc.
+ *
+ * Author: Weijie Gao <weijie.gao@mediatek.com>
+ */
+
+/ {
+	binman {
+		filename = "u-boot-mt7621.bin";
+		pad-byte = <0xff>;
+
+#ifdef CONFIG_SPL
+#ifdef CONFIG_TPL
+		blob {
+			filename = "u-boot-mt7621-spl.bin";
+			align-end = <CONFIG_SPL_ALIGN_TO>;
+		};
+#else
+#ifdef CONFIG_NAND_BOOT
+		blob {
+			filename = "spl/u-boot-mt7621-nand-spl.img";
+			align-end = <CONFIG_SPL_ALIGN_TO>;
+		};
+#else
+		u-boot-spl {
+			align-end = <CONFIG_SPL_ALIGN_TO>;
+		};
+#endif
+#endif
+		u-boot-lzma-img {
+		};
+#else
+		u-boot {
+		};
+#endif
+	};
+};

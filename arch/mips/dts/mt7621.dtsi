@@ -1,0 +1,205 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright (C) 2018 MediaTek Inc.
+ *
+ * Author: Weijie Gao <weijie.gao@mediatek.com>
+ */
+
+#include "skeleton.dtsi"
+
+/ {
+	compatible = "mediatek,mt7621-soc";
+
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "mips,mips1004Kc";
+			reg = <0>;
+		};
+
+		cpu@1 {
+			device_type = "cpu";
+			compatible = "mips,mips1004Kc";
+			reg = <0>;
+		};
+	};
+
+	sysclock50mhz: sysclock50mhz@0 {
+		compatible = "fixed-clock";
+
+		clock-frequency = <50000000>;
+
+		#clock-cells = <0>;
+	};
+
+	palmbus {
+		compatible = "simple-bus";
+		ranges;
+
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		rstctrl: reset@0x1e000034 {
+			compatible = "mediatek,mt7621-reset";
+			reg = <0x1e000034 0x4>;
+
+			status = "okay";
+
+			#reset-cells = <1>;
+		};
+
+		pinctrl: pinctrl@1e000048 {
+			compatible = "mediatek,mt7621-pinctrl";
+			reg = <0x1e000048 0x30>;
+
+			pinctrl-names = "default";
+			pinctrl-0 = <&state_default>;
+
+			state_default: pinmux_conf {
+				uart1 {
+					groups = "uart1";
+					function = "uart1";
+				};
+
+				gpio {
+					groups = "i2c", "uart2", "uart3", "pcie";
+					function = "gpio";
+				};
+
+				jtag {
+					groups = "jtag";
+					function = "jtag";
+				};
+
+				wdt {
+					groups = "wdt";
+					function = "wdt rst";
+				};
+
+				mdio {
+					groups = "mdio";
+					function = "mdio";
+				};
+
+				mdio_pconf {
+					groups = "mdio";
+					drive-strength = <2>;
+				};
+
+				rgmii2 {
+					groups = "rgmii2";
+					function = "rgmii2";
+				};
+
+				rgmii1 {
+					groups = "rgmii1";
+					function = "rgmii1";
+				};
+
+				esw {
+					groups = "esw";
+					function = "esw int";
+				};
+			};
+		};
+
+		gpio: gpio@0x1e000600 {
+			compatible = "mediatek,mt7621-gpio";
+			reg = <0x1e000600 0x100>;
+
+			bank-name = "mt7621-gpio";
+			resets = <&rstctrl 13>;
+
+			status = "disabled";
+		};
+
+		spi: spi@0x1e000b00 {
+			compatible = "mediatek,mt7621-spi";
+			reg = <0x1e000b00 0x100>;
+
+			resets = <&rstctrl 18>;
+
+			status = "disabled";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		uartlite0: uartlite0@1e000c00 {
+			compatible = "mediatek,hsuart", "ns16550";
+			reg = <0x1e000c00 0x100>;
+			reg-shift = <2>;
+			clock-frequency = <50000000>;
+
+			resets = <&rstctrl 19>;
+
+			status = "disabled";
+		};
+
+		uartlite1: uartlite0@1e000d00 {
+			compatible = "mediatek,hsuart", "ns16550";
+			reg = <0x1e000d00 0x100>;
+			reg-shift = <2>;
+			clock-frequency = <50000000>;
+
+			resets = <&rstctrl 20>;
+
+			status = "disabled";
+		};
+
+		uartlite2: uartlite0@1e000e00 {
+			compatible = "mediatek,hsuart", "ns16550";
+			reg = <0x1e000e00 0x100>;
+			reg-shift = <2>;
+			clock-frequency = <50000000>;
+
+			resets = <&rstctrl 21>;
+
+			status = "disabled";
+		};
+
+		eth: eth@1e100000 {
+			compatible = "mediatek,mt7621-eth";
+			reg = <0x1e100000 0xe000>,
+				<0x1e110000 0x8000>;
+			reg-names = "fe", "gmac";
+
+			resets = <&rstctrl 6>, <&rstctrl 23>, <&rstctrl 2>;
+			reset-names = "fe", "gsw", "mcm";
+
+			status = "disabled";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		mmc: mmc@1e130000 {
+			compatible = "mediatek,mt7621-mmc";
+			reg = <0x1e130000 0x4000>;
+			r_smpl = <1>;
+
+			clocks = <&sysclock50mhz>;
+			clock-names = "source";
+
+			resets = <&rstctrl 30>;
+
+			status = "disabled";
+		};
+
+		xhci: xhci@1e1c0000 {
+			compatible = "mediatek,mt7621-xhci";
+			reg = <0x1e1c0000 0x40000>;
+
+			status = "disabled";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+	};
+};

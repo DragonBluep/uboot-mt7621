@@ -1,0 +1,48 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright (C) 2018 MediaTek Inc.
+ *
+ * Author: Weijie Gao <weijie.gao@mediatek.com>
+ */
+
+/dts-v1/;
+#include "mt7621.dtsi"
+
+/ {
+	model = "MediaTek MT7621 reference board (NAND)";
+	compatible = "mediatek,mt7621-nand-rfb", "mediatek,mt7621-soc";
+
+	chosen {
+		stdout-path = &uartlite0;
+	};
+};
+
+&pinctrl {
+	state_default: pinmux_conf {
+		spi {
+			groups = "spi";
+			function = "nand1";
+		};
+
+		sdhci {
+			groups = "sdhci";
+			function = "nand2";
+		};
+	};
+};
+
+&gpio {
+	status = "okay";
+};
+
+&uartlite0 {
+	status = "okay";
+};
+
+&eth {
+	status = "okay";
+};
+
+&xhci {
+	status = "okay";
+};

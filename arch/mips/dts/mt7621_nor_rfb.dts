@@ -1,0 +1,69 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright (C) 2018 MediaTek Inc.
+ *
+ * Author: Weijie Gao <weijie.gao@mediatek.com>
+ */
+
+/dts-v1/;
+#include "mt7621.dtsi"
+
+/ {
+	model = "MediaTek MT7621 reference board";
+	compatible = "mediatek,mt7621-rfb", "mediatek,mt7621-soc";
+
+	aliases {
+		spi0 = &spi;
+	};
+
+	chosen {
+		stdout-path = &uartlite0;
+	};
+};
+
+&pinctrl {
+	state_default: pinmux_conf {
+		spi {
+			groups = "spi";
+			function = "spi";
+		};
+
+		sdhci {
+			groups = "sdhci";
+			function = "sdhci";
+		};
+	};
+};
+
+&gpio {
+	status = "okay";
+};
+
+&spi {
+	spi-max-frequency = <25000000>;
+	status = "okay";
+
+	spi-flash@0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "spi-flash";
+		spi-max-frequency = <25000000>;
+		reg = <0>;
+	};
+};
+
+&uartlite0 {
+	status = "okay";
+};
+
+&eth {
+	status = "okay";
+};
+
+&mmc {
+	status = "okay";
+};
+
+&xhci {
+	status = "okay";
+};

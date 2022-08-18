@@ -1,0 +1,21 @@
+if BOARD_MT7621_RFB
+
+config SYS_VENDOR
+	default "ralink"
+
+config SYS_BOARD
+	default "mt7621_rfb"
+
+config SYS_CONFIG_NAME
+	default "mt7621"
+
+config DEFAULT_NOR_KERNEL_OFFSET
+	hex "Default kernel offset in the NOR"
+	default 0x50000
+	help
+	  This is the fallback value if mtkboardboot command can't
+	  retrive the kernel offset from mtdparts.
+
+source "board/ralink/common/Kconfig"
+
+endif
