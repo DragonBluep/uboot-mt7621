@@ -309,6 +309,12 @@ config SPL_NAND_SIMPLE
 	help
 	  Support for NAND boot using simple NAND drivers that
 	  expose the cmd_ctrl() interface.
+
+config SPL_NAND_BASE_SIMPLE
+	bool "Use simplified nand base"
+	help
+	  Support for NAND base only for full hw-controlled ecc,
+	  and without subpage r/w, timing, bbt, soft ecc...
 endif
 
 endif   # if NAND

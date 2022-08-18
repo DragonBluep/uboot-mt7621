@@ -1,6 +1,5 @@
 # SPDX-License-Identifier:	GPL-2.0+
 
-obj-$(CONFIG_COMPAT_NAND_BBT)	+= compat_bbt_mtd.o
 obj-$(CONFIG_SPI_BOOT) 		+= spl_helper_nor.o
 obj-$(CONFIG_NAND_BOOT) 	+= spl_helper_nand.o
 
@@ -13,4 +12,5 @@ endif
 ifndef CONFIG_SPL_BUILD
 obj-y += cmd_mtkupgrade.o
 obj-y += cmd_mtkautoboot.o
+obj-$(CONFIG_MTK_DUAL_IMAGE_SUPPORT) 	+= dual_image.o
 endif

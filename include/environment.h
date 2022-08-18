@@ -86,6 +86,15 @@ extern unsigned long nand_env_oob_offset;
 # endif
 #endif /* CONFIG_ENV_IS_IN_NAND */
 
+#if defined(CONFIG_ENV_IS_IN_NMBM)
+# ifndef CONFIG_ENV_OFFSET
+#  error "Need to define CONFIG_ENV_OFFSET when using CONFIG_ENV_IS_IN_NMBM"
+# endif
+# ifndef CONFIG_ENV_SIZE
+#  error "Need to define CONFIG_ENV_SIZE when using CONFIG_ENV_IS_IN_NMBM"
+# endif
+#endif /* CONFIG_ENV_IS_IN_NMBM */
+
 #if defined(CONFIG_ENV_IS_IN_UBI)
 # ifndef CONFIG_ENV_UBI_PART
 #  error "Need to define CONFIG_ENV_UBI_PART when using CONFIG_ENV_IS_IN_UBI"
@@ -108,6 +117,7 @@ extern unsigned long nand_env_oob_offset;
 #ifdef CONFIG_ENV_IS_EMBEDDED
 # if	!defined(CONFIG_ENV_IS_IN_FLASH)	&& \
 	!defined(CONFIG_ENV_IS_IN_NAND)		&& \
+	!defined(CONFIG_ENV_IS_IN_NMBM)		&& \
 	!defined(CONFIG_ENV_IS_IN_ONENAND)	&& \
 	!defined(CONFIG_ENV_IS_IN_SPI_FLASH)
 #  error "CONFIG_ENV_IS_EMBEDDED not supported for your flash type"
@@ -194,6 +204,7 @@ enum env_location {
 	ENVL_FLASH,
 	ENVL_MMC,
 	ENVL_NAND,
+	ENVL_NMBM,
 	ENVL_NVRAM,
 	ENVL_ONENAND,
 	ENVL_REMOTE,

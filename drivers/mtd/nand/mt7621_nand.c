@@ -597,10 +597,13 @@ static int nfc_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip,
 				page_data_ptr(chip, buf, i),
 				oob_fdm_ptr(chip, i), i);
 
-			if (rc < 0)
-				bitflips = -ETIMEDOUT;
-			else if (bitflips >= 0)
+			if (rc < 0) {
+				printf("Unrecoverable ECC error at page %u.%u\n",
+				       page, i);
+				bitflips = -EBADMSG;
+			} else if (bitflips >= 0) {
 				bitflips += rc;
+			}
 		}
 	}
 

@@ -65,6 +65,9 @@ static enum env_location env_locations[] = {
 #ifdef CONFIG_ENV_IS_IN_NAND
 	ENVL_NAND,
 #endif
+#ifdef CONFIG_ENV_IS_IN_NMBM
+	ENVL_NMBM,
+#endif
 #ifdef CONFIG_ENV_IS_IN_NVRAM
 	ENVL_NVRAM,
 #endif

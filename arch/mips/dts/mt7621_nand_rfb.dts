@@ -35,6 +35,12 @@
 	status = "okay";
 };
 
+&i2c {
+	gpios = <&gpio 3 1>, /* PIN3 as SDA */
+		<&gpio 4 1>; /* PIN4 as CLK */
+	status = "disabled";
+};
+
 &uartlite0 {
 	status = "okay";
 };

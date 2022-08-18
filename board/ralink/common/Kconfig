@@ -6,3 +6,44 @@ config MTKAUTOBOOT_DELAY
 	help
 	  This is the default delay value for mtkautoboot command.
 	  It can be overrided by environment variable "mtkautoboot.delay"
+
+config MTK_DUAL_IMAGE_SUPPORT
+	bool "Enable dual image support"
+	default n
+	help
+	  Dual image support provides a way to protect the image from being
+	  damaged. When enabled, image check will be performed before booting.
+	  Both main image and backup image will be checked. If one of them has
+	  been damaged, the other one will replace it.
+
+config MTK_DUAL_IMAGE_PARTNAME_MAIN
+	string "MTD partition name of the main image"
+	default "firmware"
+	depends on MTK_DUAL_IMAGE_SUPPORT
+	help
+	  The MTD partition name of the main image. Normally it will be
+	  "firmware", and is the image to be booted.
+
+config MTK_DUAL_IMAGE_PARTNAME_BACKUP
+	string "MTD partition name of the backup image"
+	default "firmware_backup"
+	depends on MTK_DUAL_IMAGE_SUPPORT
+	help
+	  The MTD partition name of the backup image.
+
+config MTK_DUAL_IMAGE_SQUASHFS_DATA_CHECK
+	bool "Check squashfs rootfs integrity"
+	default y
+	depends on MTK_DUAL_IMAGE_SUPPORT
+	help
+	  Check the integrity of the squashfs rootfs.
+	  Please note that squashfs has no checksum for integrity. This
+	  option only checks if the rootfs has non-0xff byte in the last byte,
+	  and 0xff for the next byte, which is not always accurate.
+
+config MTK_DUAL_IMAGE_RESTORE_KERNEL_ONLY
+	bool "Restore kernel only"
+	default n
+	depends on MTK_DUAL_IMAGE_SUPPORT
+	help
+	  If one image is broken, only restore its kernel part/

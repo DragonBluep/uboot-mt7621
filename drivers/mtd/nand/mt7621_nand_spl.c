@@ -31,7 +31,8 @@ static void nand_command(struct mtd_info *mtd, unsigned int command,
 	/* Serially input address */
 	if (column != -1) {
 		chip->cmd_ctrl(mtd, column, NAND_ALE);
-		chip->cmd_ctrl(mtd, column >> 8, NAND_ALE);
+		if (command != NAND_CMD_READID)
+			chip->cmd_ctrl(mtd, column >> 8, NAND_ALE);
 	}
 	if (page_addr != -1) {
 		chip->cmd_ctrl(mtd, page_addr, NAND_ALE);

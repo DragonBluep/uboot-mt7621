@@ -117,6 +117,8 @@
 			resets = <&rstctrl 13>;
 
 			status = "disabled";
+			gpio-controller;
+			#gpio-cells = <2>;
 		};
 
 		spi: spi@0x1e000b00 {
@@ -196,6 +198,15 @@
 			compatible = "mediatek,mt7621-xhci";
 			reg = <0x1e1c0000 0x40000>;
 
+			status = "disabled";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		i2c: i2c@0 {
+			compatible = "i2c-gpio";
+	                i2c-gpio,delay-us = <3>;
 			status = "disabled";
 
 			#address-cells = <1>;

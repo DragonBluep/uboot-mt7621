@@ -14,6 +14,7 @@
 #include <nand.h>
 
 #include "spl_helper.h"
+#include "flash_helper.h"
 
 #define MT7621_IH_NMLEN			12
 #define MT7621_IH_CRC_POLYNOMIAL	0x04c11db7

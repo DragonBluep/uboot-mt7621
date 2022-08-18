@@ -207,7 +207,11 @@ enum nand_ecc_algo {
 #define NAND_ROM		0x00000800
 
 /* Device supports subpage reads */
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 #define NAND_SUBPAGE_READ	0x00001000
+#else
+#define NAND_SUBPAGE_READ	0x00000000
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 /*
  * Some MLC NANDs need data scrambling to limit bitflips caused by repeated

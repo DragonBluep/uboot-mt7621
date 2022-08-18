@@ -46,6 +46,7 @@
 #include <asm/io.h>
 #include <linux/errno.h>
 
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 /* Define default oob placement schemes for large and small page devices */
 static struct nand_ecclayout nand_oob_8 = {
 	.eccbytes = 3,
@@ -89,6 +90,7 @@ static struct nand_ecclayout nand_oob_128 = {
 		{.offset = 2,
 		 .length = 78} }
 };
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 static int nand_get_device(struct mtd_info *mtd, int new_state);
 
@@ -136,6 +138,7 @@ static void nand_release_device(struct mtd_info *mtd)
 	chip->select_chip(mtd, -1);
 }
 
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 /**
  * nand_read_byte - [DEFAULT] read one byte from the chip
  * @mtd: MTD device structure
@@ -172,6 +175,7 @@ static u16 nand_read_word(struct mtd_info *mtd)
 	struct nand_chip *chip = mtd_to_nand(mtd);
 	return readw(chip->IO_ADDR_R);
 }
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 /**
  * nand_select_chip - [DEFAULT] control CE line
@@ -196,6 +200,7 @@ static void nand_select_chip(struct mtd_info *mtd, int chipnr)
 	}
 }
 
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 /**
  * nand_write_byte - [DEFAULT] write single byte to chip
  * @mtd: MTD device structure
@@ -335,6 +340,7 @@ void nand_read_buf16(struct mtd_info *mtd, uint8_t *buf, int len)
 
 	ioread16_rep(chip->IO_ADDR_R, p, len >> 1);
 }
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 /**
  * nand_block_bad - [DEFAULT] Read bad block marker from the chip
@@ -443,7 +449,11 @@ static int nand_default_block_markbad(struct mtd_info *mtd, loff_t ofs)
 static int nand_block_markbad_lowlevel(struct mtd_info *mtd, loff_t ofs)
 {
 	struct nand_chip *chip = mtd_to_nand(mtd);
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 	int res, ret = 0;
+#else
+	int ret = 0;
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 	if (!(chip->bbt_options & NAND_BBT_NO_OOB_BBM)) {
 		struct erase_info einfo;
@@ -461,12 +471,14 @@ static int nand_block_markbad_lowlevel(struct mtd_info *mtd, loff_t ofs)
 		nand_release_device(mtd);
 	}
 
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 	/* Mark block bad in BBT */
 	if (chip->bbt) {
 		res = nand_markbad_bbt(mtd, ofs);
 		if (!ret)
 			ret = res;
 	}
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 	if (!ret)
 		mtd->ecc_stats.badblocks++;
@@ -503,12 +515,17 @@ static int nand_check_wp(struct mtd_info *mtd)
  */
 static int nand_block_isreserved(struct mtd_info *mtd, loff_t ofs)
 {
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 	struct nand_chip *chip = mtd_to_nand(mtd);
 
 	if (!chip->bbt)
 		return 0;
+
 	/* Return info from the table */
 	return nand_isreserved_bbt(mtd, ofs);
+#else
+	return 0;
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 }
 
 /**
@@ -524,6 +541,7 @@ static int nand_block_checkbad(struct mtd_info *mtd, loff_t ofs, int allowbbt)
 {
 	struct nand_chip *chip = mtd_to_nand(mtd);
 
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 	if (!(chip->options & NAND_SKIP_BBTSCAN) &&
 	    !(chip->options & NAND_BBT_SCANNED)) {
 		chip->options |= NAND_BBT_SCANNED;
@@ -535,6 +553,9 @@ static int nand_block_checkbad(struct mtd_info *mtd, loff_t ofs, int allowbbt)
 
 	/* Return info from the table */
 	return nand_isbad_bbt(mtd, ofs, allowbbt);
+#else
+	return chip->block_bad(mtd, ofs);
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 }
 
 /**
@@ -899,6 +920,7 @@ static int nand_wait(struct mtd_info *mtd, struct nand_chip *chip)
 	return status;
 }
 
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 /**
  * nand_reset_data_interface - Reset data interface and timings
  * @chip: The NAND chip
@@ -1044,6 +1066,7 @@ static void __maybe_unused nand_release_data_interface(struct nand_chip *chip)
 {
 	kfree(chip->data_interface);
 }
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 /**
  * nand_reset - Reset and initialize a NAND device
@@ -1055,11 +1078,13 @@ static void __maybe_unused nand_release_data_interface(struct nand_chip *chip)
 int nand_reset(struct nand_chip *chip, int chipnr)
 {
 	struct mtd_info *mtd = nand_to_mtd(chip);
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 	int ret;
 
 	ret = nand_reset_data_interface(chip, chipnr);
 	if (ret)
 		return ret;
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 	/*
 	 * The CS line has to be released before we can apply the new NAND
@@ -1069,11 +1094,13 @@ int nand_reset(struct nand_chip *chip, int chipnr)
 	chip->cmdfunc(mtd, NAND_CMD_RESET, -1, -1);
 	chip->select_chip(mtd, -1);
 
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 	chip->select_chip(mtd, chipnr);
 	ret = nand_setup_data_interface(chip, chipnr);
 	chip->select_chip(mtd, -1);
 	if (ret)
 		return ret;
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 	return 0;
 }
@@ -1205,6 +1232,7 @@ int nand_check_erased_ecc_chunk(void *data, int datalen,
 }
 EXPORT_SYMBOL(nand_check_erased_ecc_chunk);
 
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 /**
  * nand_read_page_raw - [INTERN] read raw page data without ecc
  * @mtd: mtd info structure
@@ -1604,6 +1632,7 @@ static int nand_read_page_syndrome(struct mtd_info *mtd, struct nand_chip *chip,
 
 	return max_bitflips;
 }
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 /**
  * nand_transfer_oob - [INTERN] Transfer oob to client buffer
@@ -1748,11 +1777,13 @@ read_retry:
 				ret = chip->ecc.read_page_raw(mtd, chip, bufpoi,
 							      oob_required,
 							      page);
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 			else if (!aligned && NAND_HAS_SUBPAGE_READ(chip) &&
 				 !oob)
 				ret = chip->ecc.read_subpage(mtd, chip,
 							col, bytes, bufpoi,
 							page);
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 			else
 				ret = chip->ecc.read_page(mtd, chip, bufpoi,
 							  oob_required, page);
@@ -1890,6 +1921,7 @@ static int nand_read(struct mtd_info *mtd, loff_t from, size_t len,
 	return ret;
 }
 
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 /**
  * nand_read_oob_std - [REPLACEABLE] the most common OOB data read function
  * @mtd: mtd info structure
@@ -2022,6 +2054,7 @@ static int nand_write_oob_syndrome(struct mtd_info *mtd,
 
 	return status & NAND_STATUS_FAIL ? -EIO : 0;
 }
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 /**
  * nand_do_read_oob - [INTERN] NAND read out-of-band
@@ -2165,7 +2198,7 @@ out:
 	return ret;
 }
 
-
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 /**
  * nand_write_page_raw - [INTERN] raw page write function
  * @mtd: mtd info structure
@@ -2404,6 +2437,7 @@ static int nand_write_page_syndrome(struct mtd_info *mtd,
 
 	return 0;
 }
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 /**
  * nand_write_page - [REPLACEABLE] write one page
@@ -2420,6 +2454,7 @@ static int nand_write_page(struct mtd_info *mtd, struct nand_chip *chip,
 		uint32_t offset, int data_len, const uint8_t *buf,
 		int oob_required, int page, int raw)
 {
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 	int status, subpage;
 
 	if (!(chip->options & NAND_NO_SUBPAGE_WRITE) &&
@@ -2427,6 +2462,9 @@ static int nand_write_page(struct mtd_info *mtd, struct nand_chip *chip,
 		subpage = offset || (data_len < mtd->writesize);
 	else
 		subpage = 0;
+#else
+	int status;
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 	if (nand_standard_page_accessors(&chip->ecc))
 		chip->cmdfunc(mtd, NAND_CMD_SEQIN, 0x00, page);
@@ -2434,9 +2472,11 @@ static int nand_write_page(struct mtd_info *mtd, struct nand_chip *chip,
 	if (unlikely(raw))
 		status = chip->ecc.write_page_raw(mtd, chip, buf,
 						  oob_required, page);
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 	else if (subpage)
 		status = chip->ecc.write_subpage(mtd, chip, offset, data_len,
 						 buf, oob_required, page);
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 	else
 		status = chip->ecc.write_page(mtd, chip, buf, oob_required,
 					      page);
@@ -3103,15 +3143,25 @@ static void nand_set_defaults(struct nand_chip *chip, int busw)
 	if (!chip->onfi_get_features)
 		chip->onfi_get_features = nand_onfi_get_features;
 
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 	/* If called twice, pointers that depend on busw may need to be reset */
 	if (!chip->read_byte || chip->read_byte == nand_read_byte)
 		chip->read_byte = busw ? nand_read_byte16 : nand_read_byte;
 	if (!chip->read_word)
 		chip->read_word = nand_read_word;
+#else
+	if (!chip->read_byte) {
+		pr_err("chip->read_byte not set!\n");
+		BUG();
+	}
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
+
 	if (!chip->block_bad)
 		chip->block_bad = nand_block_bad;
 	if (!chip->block_markbad)
 		chip->block_markbad = nand_default_block_markbad;
+
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 	if (!chip->write_buf || chip->write_buf == nand_write_buf)
 		chip->write_buf = busw ? nand_write_buf16 : nand_write_buf;
 	if (!chip->write_byte || chip->write_byte == nand_write_byte)
@@ -3120,6 +3170,22 @@ static void nand_set_defaults(struct nand_chip *chip, int busw)
 		chip->read_buf = busw ? nand_read_buf16 : nand_read_buf;
 	if (!chip->scan_bbt)
 		chip->scan_bbt = nand_default_bbt;
+#else
+	if (!chip->write_buf) {
+		pr_err("chip->write_buf not set!\n");
+		BUG();
+	}
+
+	if (!chip->write_byte) {
+		pr_err("chip->write_byte not set!\n");
+		BUG();
+	}
+
+	if (!chip->read_buf) {
+		pr_err("chip->read_buf not set!\n");
+		BUG();
+	}
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 	if (!chip->controller) {
 		chip->controller = &chip->hwcontrol;
@@ -3360,13 +3426,6 @@ static int nand_flash_detect_onfi(struct mtd_info *mtd, struct nand_chip *chip,
 
 	return 1;
 }
-#else
-static int nand_flash_detect_onfi(struct mtd_info *mtd, struct nand_chip *chip,
-					int *busw)
-{
-	return 0;
-}
-#endif
 
 /*
  * Check if the NAND chip is JEDEC compliant, returns 1 if it is, 0 otherwise.
@@ -3448,6 +3507,7 @@ static int nand_flash_detect_jedec(struct mtd_info *mtd, struct nand_chip *chip,
 
 	return 1;
 }
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 /*
  * nand_id_has_period - Check if an ID string has a given wraparound period
@@ -3900,6 +3960,7 @@ ident_done:
 	pr_info("device found, Manufacturer ID: 0x%02x, Chip ID: 0x%02x\n",
 		*maf_id, *dev_id);
 
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 #ifdef CONFIG_SYS_NAND_ONFI_DETECTION
 	if (chip->onfi_version)
 		pr_info("%s %s\n", nand_manuf_ids[maf_idx].name,
@@ -3921,6 +3982,7 @@ ident_done:
 	pr_info("%s %s\n", nand_manuf_ids[maf_idx].name,
 		type->name);
 #endif
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 	pr_info("%d MiB, %s, erase size: %d KiB, page size: %d, OOB size: %d\n",
 		(int)(chip->chipsize >> 20), nand_is_slc(chip) ? "SLC" : "MLC",
@@ -4030,6 +4092,7 @@ int nand_scan_ident(struct mtd_info *mtd, int maxchips,
 		return PTR_ERR(type);
 	}
 
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 	/* Initialize the ->data_interface field. */
 	ret = nand_init_data_interface(chip);
 	if (ret)
@@ -4046,6 +4109,7 @@ int nand_scan_ident(struct mtd_info *mtd, int maxchips,
 	ret = nand_setup_data_interface(chip, 0);
 	if (ret)
 		return ret;
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 	chip->select_chip(mtd, -1);
 
@@ -4079,6 +4143,7 @@ int nand_scan_ident(struct mtd_info *mtd, int maxchips,
 }
 EXPORT_SYMBOL(nand_scan_ident);
 
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 /**
  * nand_check_ecc_caps - check the sanity of preset ECC settings
  * @chip: nand chip info structure
@@ -4298,6 +4363,7 @@ int nand_maximize_ecc(struct nand_chip *chip,
 	return 0;
 }
 EXPORT_SYMBOL_GPL(nand_maximize_ecc);
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 /*
  * Check if the chip configuration meet the datasheet requirements.
@@ -4388,6 +4454,7 @@ int nand_scan_tail(struct mtd_info *mtd)
 	/* Set the internal oob buffer location, just after the page data */
 	chip->oob_poi = chip->buffers->databuf + mtd->writesize;
 
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 	/*
 	 * If no default placement scheme is given, select an appropriate one.
 	 */
@@ -4411,6 +4478,13 @@ int nand_scan_tail(struct mtd_info *mtd)
 			BUG();
 		}
 	}
+#else
+	if (!ecc->layout) {
+		pr_warn("No oob scheme defined for oobsize %d\n",
+			mtd->oobsize);
+		BUG();
+	}
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 	if (!chip->write_page)
 		chip->write_page = nand_write_page;
@@ -4421,6 +4495,7 @@ int nand_scan_tail(struct mtd_info *mtd)
 	 */
 
 	switch (ecc->mode) {
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 	case NAND_ECC_HW_OOB_FIRST:
 		/* Similar to NAND_ECC_HW, but a separate read_page handle */
 		if (!ecc->calculate || !ecc->correct || !ecc->hwctl) {
@@ -4429,8 +4504,10 @@ int nand_scan_tail(struct mtd_info *mtd)
 		}
 		if (!ecc->read_page)
 			ecc->read_page = nand_read_page_hwecc_oob_first;
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 	case NAND_ECC_HW:
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 		/* Use standard hwecc read page function? */
 		if (!ecc->read_page)
 			ecc->read_page = nand_read_page_hwecc;
@@ -4544,6 +4621,46 @@ int nand_scan_tail(struct mtd_info *mtd)
 		ecc->bytes = 0;
 		ecc->strength = 0;
 		break;
+#else
+		/* Use standard hwecc read page function? */
+		if (!ecc->read_page) {
+			pr_err("ecc->read_page not set!\n");
+			BUG();
+		}
+
+		if (!ecc->write_page) {
+			pr_err("ecc->write_page not set!\n");
+			BUG();
+		}
+
+		if (!ecc->read_page_raw) {
+			pr_err("ecc->read_page_raw not set!\n");
+			BUG();
+		}
+
+		if (!ecc->write_page_raw) {
+			pr_err("ecc->write_page_raw not set!\n");
+			BUG();
+		}
+
+		if (!ecc->read_oob) {
+			pr_err("ecc->read_oob not set!\n");
+			BUG();
+		}
+
+		if (!ecc->write_oob) {
+			pr_err("ecc->write_oob not set!\n");
+			BUG();
+		}
+
+		if (mtd->writesize >= ecc->size) {
+			if (!ecc->strength) {
+				pr_warn("Driver must set ecc.strength when using hardware ECC\n");
+				BUG();
+			}
+			break;
+		}
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 	default:
 		pr_warn("Invalid NAND_ECC_MODE %d\n", ecc->mode);
@@ -4603,6 +4720,7 @@ int nand_scan_tail(struct mtd_info *mtd)
 	/* Invalidate the pagebuffer reference */
 	chip->pagebuf = -1;
 
+#if !CONFIG_IS_ENABLED(NAND_BASE_SIMPLE)
 	/* Large page NAND with SOFT_ECC should support subpage reads */
 	switch (ecc->mode) {
 	case NAND_ECC_SOFT:
@@ -4614,6 +4732,7 @@ int nand_scan_tail(struct mtd_info *mtd)
 	default:
 		break;
 	}
+#endif /* !CONFIG_SPL_NAND_BASE_SIMPLE */
 
 	/* Fill in remaining MTD driver data */
 	mtd->type = nand_is_slc(chip) ? MTD_NANDFLASH : MTD_MLCNANDFLASH;

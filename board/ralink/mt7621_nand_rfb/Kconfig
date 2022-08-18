@@ -13,24 +13,40 @@ config CRC32C_BE
 	bool
 	default y
 
-config COMPAT_NAND_BBT
-	bool "Use compatible NAND bad block management"
+config ENABLE_NAND_NMBM
+	bool "Enable NAND bad block mapping management"
 	default n
 	select MTD_DEVICE
-	select LAST_STAGE_INIT
+	select NMBM
+	select NMBM_MTD
 	help
-	  Select this if you want to use bad block table and management
-	  which are compatible with the legacy Uboot 1.1.3
+	  Select this if you want to use bad block management to handle
+	  bad blocks marked druing factory production, and to handle new
+	  bad blocks during use.
 	  Enabling this option will create a MTD translation layer on
 	  the original MTD of the NAND device.
 
-config COMPAT_NAND_BBT_WB
-	bool "Write back BBT when necessary"
-	default n
-	depends on COMPAT_NAND_BBT
+config NMBM_MAX_RATIO
+	int "Default ratio for reserved block for management (N/16)"
+	range 1 8
+	default 1
+	depends on ENABLE_NAND_NMBM
 	help
-	  Select this if you want full compatiblility with linux kernel
-	  using legacy NAND driver
+	  This option determines how many blocks at the high adress of NAND
+	  can be used for NMBM. For a large size NAND, 1/16 of total blocks
+	  are still too large for NMBM. For this situation please set
+	  CONFIG_NMBM_MAX_BLOCKS to a proper value to limit the maximum
+	  reserved blocks.
+
+config NMBM_MAX_BLOCKS
+	int "Maximum blocks allowed for reserved block for management"
+	range 32 2147483647
+	default 256
+	depends on ENABLE_NAND_NMBM
+	help
+	  This option is applied after NMBM_MAX_RATIO to ensure maximum
+	  blocks reserved block for NMBM will not exceed the value set by
+	  this option.
 
 config DEFAULT_NAND_KERNEL_OFFSET
 	hex "Default kernel offset in the NAND"

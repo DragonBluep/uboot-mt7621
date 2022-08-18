@@ -15,7 +15,12 @@
 #include <linux/mtd/mtd.h>
 #include <mach/mt7621_regs.h>
 
-#include "../common/compat_bbt_mtd.h"
+#include <nmbm/nmbm.h>
+#include <nmbm/nmbm-mtd.h>
+
+#ifdef CONFIG_ENABLE_NAND_NMBM
+static int nmbm_usable;
+#endif
 
 #ifdef CONFIG_DEBUG_UART_BOARD_INIT
 void board_debug_uart_init(void)
@@ -30,16 +35,36 @@ void board_debug_uart_init(void)
 }
 #endif
 
-#ifdef CONFIG_LAST_STAGE_INIT
-int last_stage_init(void)
+int board_nmbm_init(void)
 {
-#ifdef CONFIG_COMPAT_NAND_BBT
-	mt7621_nand_bbt_compat_create("nand0");
+#ifdef CONFIG_ENABLE_NAND_NMBM
+	struct mtd_info *lower, *upper;
+	int ret;
+
+	printf("\n");
+	printf("Initializing NMBM ...\n");
+
+	lower = get_nand_dev_by_index(0);
+	if (!lower) {
+		printf("Failed to create NMBM device due to nand0 not found\n");
+		return 0;
+	}
+
+	ret = nmbm_attach_mtd(lower, NMBM_F_CREATE, CONFIG_NMBM_MAX_RATIO,
+		CONFIG_NMBM_MAX_BLOCKS, &upper);
+
+	printf("\n");
+
+	if (ret)
+		return 0;
+
+	add_mtd_device(upper);
+
+	nmbm_usable = 1;
 #endif
 
 	return 0;
 }
-#endif
 
 #ifdef CONFIG_SPL_BUILD
 void board_boot_order(u32 *spl_boot_list)
@@ -72,9 +97,77 @@ ulong get_mtk_image_search_sector_size(void)
 
 struct mtd_info *get_mtk_board_nand_mtd(void)
 {
-#ifdef CONFIG_COMPAT_NAND_BBT
-	return get_mtd_device_nm("mnbc0");
-#else
-	return get_nand_dev_by_index(0);
+#ifdef CONFIG_ENABLE_NAND_NMBM
+	struct mtd_info *mtd;
+
+	if (nmbm_usable) {
+		mtd = get_mtd_device_nm("nmbm0");
+		if (IS_ERR(mtd))
+			return NULL;
+		return mtd;
+	}
 #endif
+
+	return get_nand_dev_by_index(0);
 }
+
+#ifndef CONFIG_SPL_BUILD
+void *mtk_board_get_flash_dev(void)
+{
+	return get_mtk_board_nand_mtd();
+}
+
+size_t mtk_board_get_flash_erase_size(void *flashdev)
+{
+	struct mtd_info *mtd = (struct mtd_info *)flashdev;
+
+	return mtd->erasesize;
+}
+
+int mtk_board_flash_erase(void *flashdev, uint64_t offset, uint64_t len)
+{
+	struct mtd_info *mtd = (struct mtd_info *)flashdev;
+	struct erase_info instr;
+	int ret;
+
+	memset(&instr, 0, sizeof(instr));
+
+	instr.addr = offset;
+	instr.len = len;
+
+	ret = mtd_erase(mtd, &instr);
+	if (ret)
+		return ret;
+
+	if (instr.state != MTD_ERASE_DONE)
+		return -1;
+
+	return 0;
+}
+
+int mtk_board_flash_read(void *flashdev, uint64_t offset, size_t len,
+			 void *buf)
+{
+	struct mtd_info *mtd = (struct mtd_info *)flashdev;
+	size_t retlen;
+	int ret;
+
+	ret = mtd_read(mtd, offset, len, &retlen, buf);
+	if (ret && ret != -EUCLEAN)
+		return ret;
+
+	if (retlen != len)
+		return -EIO;
+
+	return 0;
+}
+
+int mtk_board_flash_write(void *flashdev, uint64_t offset, size_t len,
+			  const void *buf)
+{
+	struct mtd_info *mtd = (struct mtd_info *)flashdev;
+	size_t retlen;
+
+	return mtd_write(mtd, offset, len, &retlen, buf);
+}
+#endif

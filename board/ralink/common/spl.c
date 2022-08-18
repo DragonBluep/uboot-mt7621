@@ -16,6 +16,13 @@
 
 #if defined(CONFIG_NAND_BOOT)
 #include <nand.h>
+
+#ifdef CONFIG_ENABLE_NAND_NMBM
+#include <nmbm/nmbm.h>
+#include <nmbm/nmbm-mtd.h>
+
+static struct mtd_info *upper;
+#endif
 #endif
 
 #include "spl_helper.h"
@@ -138,6 +145,40 @@ static int spl_mtk_nor_load_image(struct spl_image_info *spl_image,
 SPL_LOAD_IMAGE_METHOD("NOR", 0, BOOT_DEVICE_MTK_NOR, spl_mtk_nor_load_image);
 
 #if defined(CONFIG_NAND_BOOT)
+
+#ifdef CONFIG_ENABLE_NAND_NMBM
+static int spl_nmbm_init(void)
+{
+	struct mtd_info *lower;
+	int ret;
+
+	printf("\n");
+	printf("Initializing NMBM ...\n");
+
+	lower = get_nand_dev_by_index(0);
+	if (!lower) {
+		printf("Failed to create NMBM device due to nand0 not found\n");
+		return -ENODEV;
+	}
+
+	ret = nmbm_attach_mtd(lower, NMBM_F_CREATE, CONFIG_NMBM_MAX_RATIO,
+		CONFIG_NMBM_MAX_BLOCKS, &upper);
+
+	return ret;
+}
+
+int nand_spl_load_image(uint32_t offs, unsigned int size, void *dest)
+{
+	size_t retlen;
+
+	return mtd_read(upper, offs, size, &retlen, dest);
+}
+
+void nand_deselect(void)
+{
+}
+#endif
+
 static int spl_mtk_read_nand_image(struct spl_image_info *spl_image,
 				   ulong nand_addr, ulong *data_addr)
 {
@@ -184,7 +225,17 @@ static int spl_mtk_nand_load_image(struct spl_image_info *spl_image,
 	ulong search_sector_size = get_mtk_image_search_sector_size();
 	ulong image_addr;
 
+#ifdef CONFIG_ENABLE_NAND_NMBM
+	int ret;
+#endif
+
 	nand_init();
+
+#ifdef CONFIG_ENABLE_NAND_NMBM
+	ret = spl_nmbm_init();
+	if (ret)
+		return ret;
+#endif
 
 	/*
 	* Loading of the payload to SDRAM is done with skipping of

@@ -693,6 +693,7 @@ libs-$(CONFIG_CMD_NAND) += drivers/mtd/nand/
 libs-y += drivers/mtd/onenand/
 libs-$(CONFIG_CMD_UBI) += drivers/mtd/ubi/
 libs-y += drivers/mtd/spi/
+libs-$(CONFIG_NMBM) += drivers/mtd/nmbm/
 libs-y += drivers/net/
 libs-y += drivers/net/phy/
 libs-y += drivers/pci/

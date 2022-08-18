@@ -9,20 +9,16 @@
 #include <command.h>
 #include <console.h>
 #include <cli.h>
+#include <div64.h>
 #include <environment.h>
-#include <dm.h>
 #include <xyzModem.h>
-#include <nand.h>
-#include <spi.h>
-#include <spi_flash.h>
-#include <dm/device-internal.h>
-
 #include <asm/reboot.h>
 #include <linux/mtd/mtd.h>
 #include <linux/sizes.h>
 #include <jffs2/jffs2.h>
 
 #include "spl_helper.h"
+#include "flash_helper.h"
 
 #define BUF_SIZE 1024
 
@@ -31,12 +27,6 @@
 #define COLOR_ERROR	"\x1b[93;41m"
 #define COLOR_CAUTION	"\x1b[1;31m"
 #define COLOR_NORMAL	"\x1b[0m"
-
-#if defined (CONFIG_NAND_BOOT)
-#define MT_MTD_DEV_TYPE		MTD_DEV_TYPE_NAND
-#else
-#define MT_MTD_DEV_TYPE		MTD_DEV_TYPE_NOR
-#endif
 
 enum file_type {
 	TYPE_BL,
@@ -330,7 +320,7 @@ static int load_data(size_t addr, uint32_t *data_size, const char *env_name)
 	return CMD_RET_SUCCESS;
 }
 
-static int get_mtd_part_info(const char *partname, size_t *off, size_t *size)
+int get_mtd_part_info(const char *partname, uint64_t *off, uint64_t *size)
 {
 	struct mtd_device *dev;
 	struct part_info *part;
@@ -345,9 +335,6 @@ static int get_mtd_part_info(const char *partname, size_t *off, size_t *size)
 	if (ret)
 		return ret;
 
-	if (dev->id->type != MT_MTD_DEV_TYPE)
-		return -1;
-
 	*off = part->offset;
 	*size = part->size;
 	return 0;
@@ -355,7 +342,7 @@ static int get_mtd_part_info(const char *partname, size_t *off, size_t *size)
 
 static int check_mtd_bootloader_size(size_t data_size)
 {
-	size_t part_off, part_size;
+	uint64_t part_off, part_size;
 	const char *part_name = "u-boot";
 
 	if (get_mtd_part_info(part_name, &part_off, &part_size)) {
@@ -378,137 +365,6 @@ static int check_mtd_bootloader_size(size_t data_size)
 
 	return CMD_RET_SUCCESS;
 }
-
-#if defined (CONFIG_NAND_BOOT)
-static void *get_flash_dev(void)
-{
-	return get_mtk_board_nand_mtd();
-}
-
-static size_t get_flash_block_size(void *flashdev)
-{
-	struct mtd_info *mtd = (struct mtd_info *) flashdev;
-
-	return mtd->erasesize;
-}
-
-static int do_flash_erase(void *flashdev, size_t offset, size_t len)
-{
-	struct mtd_info *mtd = (struct mtd_info *) flashdev;
-	struct erase_info instr;
-	int ret;
-
-	memset(&instr, 0, sizeof(instr));
-
-	instr.addr = offset;
-	instr.len = len;
-
-	ret = mtd_erase(mtd, &instr);
-	if (ret)
-		return ret;
-
-	if (instr.state != MTD_ERASE_DONE)
-		return -1;
-
-	return 0;
-}
-
-static int do_nand_verify(struct mtd_info *mtd, u32 offset, size_t len,
-			  const void *buf)
-{
-	u8 data[SZ_4K];
-	int ret;
-	size_t retlen, readlen;
-	const u8 *ptr = (const u8 *) buf;
-
-	while (len) {
-		readlen = sizeof(data);
-		if (readlen > len)
-			readlen = len;
-
-		ret = mtd_read(mtd, offset, readlen, &retlen, data);
-		if (ret && ret != -EUCLEAN)
-			return ret;
-
-		if (readlen != retlen)
-			return 1;
-
-		if (memcmp(data, ptr, readlen))
-			return 1;
-
-		offset += readlen;
-		ptr += readlen;
-		len -= readlen;
-	}
-
-	return 0;
-}
-
-static int do_flash_write(void *flashdev, u32 offset, size_t len,
-			  const void *buf)
-{
-	struct mtd_info *mtd = (struct mtd_info *) flashdev;
-	int ret;
-	size_t retlen;
-
-	ret = mtd_write(mtd, offset, len, &retlen, buf);
-	if (ret && ret != -EUCLEAN)
-		return ret;
-
-	return do_nand_verify(mtd, offset, len, buf);
-}
-#else
-static void *get_flash_dev(void)
-{
-	unsigned int bus = CONFIG_SF_DEFAULT_BUS;
-	unsigned int cs = CONFIG_SF_DEFAULT_CS;
-	unsigned int speed = CONFIG_SF_DEFAULT_SPEED;
-	unsigned int mode = CONFIG_SF_DEFAULT_MODE;
-	struct spi_flash *flash = NULL;
-	struct udevice *new, *bus_dev;
-	int ret;
-	/* In DM mode defaults will be taken from DT */
-	speed = 0, mode = 0;
-
-	/* Remove the old device, otherwise probe will just be a nop */
-	ret = spi_find_bus_and_cs(bus, cs, &bus_dev, &new);
-	if (!ret)
-		device_remove(new, DM_REMOVE_NORMAL);
-
-	ret = spi_flash_probe_bus_cs(bus, cs, speed, mode, &new);
-	if (ret) {
-		printf("Failed to initialize SPI flash at %u:%u (error %d)\n",
-			bus, cs, ret);
-		return NULL;
-	}
-
-	flash = dev_get_uclass_priv(new);
-
-	return flash;
-}
-
-static size_t get_flash_block_size(void *flashdev)
-{
-	struct spi_flash *flash = (struct spi_flash *) flashdev;
-
-	return flash->erase_size;
-}
-
-static int do_flash_erase(void *flashdev, size_t offset, size_t len)
-{
-	struct spi_flash *flash = (struct spi_flash *) flashdev;
-
-	return spi_flash_erase(flash, offset, len);
-}
-
-static int do_flash_write(void *flashdev, u32 offset, size_t len,
-			  const void *buf)
-{
-	struct spi_flash *flash = (struct spi_flash *) flashdev;
-
-	return spi_flash_write(flash, offset, len, buf);
-}
-#endif
 
 static int prompt_countdown(const char *prompt, int delay)
 {
@@ -544,6 +400,34 @@ static int prompt_countdown(const char *prompt, int delay)
 	puts("\n");
 
 	return hit;
+}
+
+static int do_data_verify(void *flashdev, uint64_t offset, size_t len,
+			  const void *buf)
+{
+	const u8 *ptr = (const u8 *)buf;
+	size_t readlen;
+	u8 data[SZ_4K];
+	int ret;
+
+	while (len) {
+		readlen = sizeof(data);
+		if (readlen > len)
+			readlen = len;
+
+		ret = mtk_board_flash_read(flashdev, offset, readlen, data);
+		if (ret)
+			return ret;
+
+		if (memcmp(data, ptr, readlen))
+			return 1;
+
+		offset += readlen;
+		ptr += readlen;
+		len -= readlen;
+	}
+
+	return 0;
 }
 
 static int do_write_bootloader(void *flash, size_t stock_stage2_off,
@@ -584,12 +468,12 @@ static int do_write_bootloader(void *flash, size_t stock_stage2_off,
 
 	printf("\n");
 
-	erase_size = ALIGN(data_size, get_flash_block_size(flash));
+	erase_size = ALIGN(data_size, mtk_board_get_flash_erase_size(flash));
 
 	printf("Erasing from 0x%x to 0x%x, size 0x%x ... ", stock_stage2_off,
 	       stock_stage2_off + erase_size - 1, erase_size);
 
-	ret = do_flash_erase(flash, stock_stage2_off, erase_size);
+	ret = mtk_board_flash_erase(flash, stock_stage2_off, erase_size);
 
 	if (ret) {
 		printf("Fail\n");
@@ -604,14 +488,32 @@ static int do_write_bootloader(void *flash, size_t stock_stage2_off,
 	printf("Writting from 0x%x to 0x%x, size 0x%x ... ", data_addr,
 	       stock_stage2_off, data_size);
 
-	ret = do_flash_write(flash, stock_stage2_off, data_size,
-			     (void *) data_addr);
+	ret = mtk_board_flash_write(flash, stock_stage2_off, data_size,
+				    (void *) data_addr);
 
 	if (ret) {
 		printf("Fail\n");
 		printf(COLOR_ERROR "*** Flash program [%x-%x] failed! ***"
 		       COLOR_NORMAL "\n", stock_stage2_off,
 		       stock_stage2_off + data_size - 1);
+		return CMD_RET_FAILURE;
+	}
+
+	printf("OK\n");
+
+	printf("Verifying from 0x%x to 0x%x, size 0x%x ... ", stock_stage2_off,
+		stock_stage2_off + data_size - 1, data_size);
+
+	ret = do_data_verify(flash, stock_stage2_off, data_size,
+			     (void *)data_addr);
+
+	if (ret) {
+		printf("Fail\n");
+		printf(COLOR_ERROR "*** Verification [%x-%x] failed! ***"
+		       COLOR_NORMAL "\n", stock_stage2_off,
+		       stock_stage2_off + data_size - 1);
+		printf(COLOR_ERROR "*** Bootloader is damaged, please retry! ***"
+		       COLOR_NORMAL "\n");
 		return CMD_RET_FAILURE;
 	}
 
@@ -682,7 +584,7 @@ static int write_bootloader(void *flash, size_t data_addr, uint32_t data_size,
 		/* Current bootloader is not a two-stage bootloader */
 		goto do_write_bl_single;
 
-	flash_block_size = get_flash_block_size(flash);
+	flash_block_size = mtk_board_get_flash_erase_size(flash);
 	if (!flash_block_size)
 		/* Unable to get erase block size */
 		goto do_write_bl_single;
@@ -763,7 +665,7 @@ static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size,
 			   int no_prompt)
 {
 	uint32_t erase_size;
-	size_t part_off, part_size;
+	uint64_t part_off, part_size, tmp;
 	int ret;
 
 	if (get_mtd_part_info("firmware", &part_off, &part_size)) {
@@ -778,7 +680,9 @@ static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size,
 		return CMD_RET_FAILURE;
 	}
 
-	if (part_off % get_flash_block_size(flash)) {
+	tmp = part_off;
+
+	if (do_div(tmp, mtk_board_get_flash_erase_size(flash))) {
 		printf(COLOR_ERROR "*** MTD partition 'firmware' does not "
 		       "start on erase boundary! ***" COLOR_NORMAL "\n");
 		return CMD_RET_FAILURE;
@@ -794,30 +698,31 @@ static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size,
 
 	printf("\n");
 
-	erase_size = ALIGN(data_size, get_flash_block_size(flash));
+	erase_size = ALIGN(data_size, mtk_board_get_flash_erase_size(flash));
 
-	printf("Erasing from 0x%x to 0x%x, size 0x%x ... ", part_off,
+	printf("Erasing from 0x%llx to 0x%llx, size 0x%x ... ", part_off,
 	       part_off + erase_size - 1, erase_size);
 
-	ret = do_flash_erase(flash, part_off, erase_size);
+	ret = mtk_board_flash_erase(flash, part_off, erase_size);
 
 	if (ret) {
 		printf("Fail\n");
-		printf(COLOR_ERROR "*** Flash erasure [%x-%x] failed! ***"
+		printf(COLOR_ERROR "*** Flash erasure [%llx-%llx] failed! ***"
 		       COLOR_NORMAL "\n", part_off, part_off + erase_size - 1);
 		return CMD_RET_FAILURE;
 	}
 
 	printf("OK\n");
 
-	printf("Writting from 0x%x to 0x%x, size 0x%x ... ", data_addr,
+	printf("Writting from 0x%x to 0x%llx, size 0x%x ... ", data_addr,
 	       part_off, data_size);
 
-	ret = do_flash_write(flash, part_off, data_size, (void *) data_addr);
+	ret = mtk_board_flash_write(flash, part_off, data_size,
+				    (void *)data_addr);
 
 	if (ret) {
 		printf("Fail\n");
-		printf(COLOR_ERROR "*** Flash program [%x-%x] failed! ***"
+		printf(COLOR_ERROR "*** Flash program [%llx-%llx] failed! ***"
 		       COLOR_NORMAL "\n", part_off, part_off + data_size - 1);
 		return CMD_RET_FAILURE;
 	}
@@ -826,6 +731,15 @@ static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size,
 
 	printf("\n" COLOR_PROMPT "*** Firmware upgrade completed! ***"
 	       COLOR_NORMAL "\n");
+
+#ifdef CONFIG_MTK_DUAL_IMAGE_SUPPORT
+	if (!get_mtd_part_info(CONFIG_MTK_DUAL_IMAGE_PARTNAME_BACKUP,
+			      &part_off, &part_size)) {
+		/* Force backup image to be upgraded on next bootup */
+		mtk_board_flash_erase(flash, part_off,
+			mtk_board_get_flash_erase_size(flash));
+	}
+#endif
 
 	if (no_prompt)
 		return CMD_RET_SUCCESS;
@@ -840,7 +754,7 @@ int write_firmware_failsafe(size_t data_addr, uint32_t data_size)
 {
 	void *flash;
 
-	flash = get_flash_dev();
+	flash = mtk_board_get_flash_dev();
 
 	if (!flash)
 		return CMD_RET_FAILURE;
@@ -857,7 +771,7 @@ static int write_data(enum file_type ft, size_t addr, uint32_t data_size)
 {
 	void *flash;
 
-	flash = get_flash_dev();
+	flash = mtk_board_get_flash_dev();
 
 	if (!flash)
 		return CMD_RET_FAILURE;

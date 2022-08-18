@@ -59,6 +59,8 @@ config RENESAS_RPC_HF
 	  This enables access to Hyperflash memory through the Renesas
 	  RCar Gen3 RPC controller.
 
+source "drivers/mtd/nmbm/Kconfig"
+
 endmenu
 
 source "drivers/mtd/nand/Kconfig"

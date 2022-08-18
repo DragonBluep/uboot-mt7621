@@ -58,6 +58,7 @@ void lowlevel_init(void)
 		REG_MASK(CPU_CLK_SEL), REG_SET_VAL(CPU_CLK_SEL, 1));
 
 	/* Get final CPU clock */
+	gd->cpu_clk = 0;
 	get_cpu_freq(0);
 
 	/* Setup USB xHCI */

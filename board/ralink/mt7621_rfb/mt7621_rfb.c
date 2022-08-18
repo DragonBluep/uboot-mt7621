@@ -11,6 +11,10 @@
 #include <asm/spl.h>
 #include <asm/io.h>
 #include <mach/mt7621_regs.h>
+#include <spi.h>
+#include <spi_flash.h>
+#include <dm.h>
+#include <dm/device-internal.h>
 
 #ifdef CONFIG_DEBUG_UART_BOARD_INIT
 void board_debug_uart_init(void)
@@ -76,5 +80,67 @@ ulong get_mtk_image_search_sector_size(void)
 
 	return __rom_cfg.align;
 #endif
+}
+#endif
+
+#ifndef CONFIG_SPL_BUILD
+void *mtk_board_get_flash_dev(void)
+{
+	unsigned int bus = CONFIG_SF_DEFAULT_BUS;
+	unsigned int cs = CONFIG_SF_DEFAULT_CS;
+	unsigned int speed = CONFIG_SF_DEFAULT_SPEED;
+	unsigned int mode = CONFIG_SF_DEFAULT_MODE;
+	struct spi_flash *flash = NULL;
+	struct udevice *new, *bus_dev;
+	int ret;
+
+	/* In DM mode defaults will be taken from DT */
+	speed = 0, mode = 0;
+
+	/* Remove the old device, otherwise probe will just be a nop */
+	ret = spi_find_bus_and_cs(bus, cs, &bus_dev, &new);
+	if (!ret)
+		device_remove(new, DM_REMOVE_NORMAL);
+
+	ret = spi_flash_probe_bus_cs(bus, cs, speed, mode, &new);
+	if (ret) {
+		printf("Failed to initialize SPI flash at %u:%u (error %d)\n",
+			bus, cs, ret);
+		return NULL;
+	}
+
+	flash = dev_get_uclass_priv(new);
+
+	return flash;
+}
+
+size_t mtk_board_get_flash_erase_size(void *flashdev)
+{
+	struct spi_flash *flash = (struct spi_flash *)flashdev;
+
+	return flash->erase_size;
+}
+
+int mtk_board_flash_erase(void *flashdev, uint64_t offset, uint64_t len)
+{
+	struct spi_flash *flash = (struct spi_flash *)flashdev;
+
+	return spi_flash_erase(flash, offset, len);
+}
+
+int mtk_board_flash_read(void *flashdev, uint64_t offset, size_t len,
+			 void *buf)
+{
+	struct spi_flash *flash = (struct spi_flash *)flashdev;
+
+	return spi_flash_read(flash, offset, len, buf);
+}
+
+int mtk_board_flash_write(void *flashdev, uint64_t offset, size_t len,
+			  const void *buf)
+{
+	struct spi_flash *flash = (struct spi_flash *)flashdev;
+
+	return spi_flash_write(flash, offset, len, buf);
 }
 #endif

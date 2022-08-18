@@ -16,6 +16,7 @@
 #include <mach/mt7621_regs.h>
 
 #define CONFIG_SYS_INIT_SP_ADDR		0xbe10d000
+#define CONFIG_SYS_SPL_SP_ADDR		0x80400000
 
 	.set noreorder
 
@@ -33,9 +34,9 @@
 	sdbbp	1		# Invoke UHI operation
 	.endm
 
-	.macro setup_stack_gd
+	.macro setup_stack_gd base
 	li	t0, -16
-	PTR_LI	t1, CONFIG_SYS_INIT_SP_ADDR
+	PTR_LI	t1, \base
 	and	sp, t1, t0		# force 16 byte alignment
 	PTR_SUBU \
 		sp, sp, GD_SIZE		# reserve space for gd
@@ -195,7 +196,7 @@ reset:
 	 nop
 
 	/* Set up initial stack and global data */
-	setup_stack_gd
+	setup_stack_gd CONFIG_SYS_INIT_SP_ADDR
 
 #ifndef CONFIG_TPL_BUILD
 #ifdef CONFIG_DEBUG_UART
@@ -240,11 +241,24 @@ reset:
 	ins	t9, t0, 29, 3			# convert to KSEG1 address
 	jalr	t9
 	 nop
-#elif !defined(CONFIG_TPL_BUILD)
-	/* Initialize caches... */
-	bal	mips_cache_reset
+
+	/* Save previous GD pointer */
+	move	s0, k0
+
+	/* Move GD and stack from uncached SRAM to cached DRAM */
+	setup_stack_gd	CONFIG_SYS_SPL_SP_ADDR
+
+	move	a0, k0
+	move	a1, s0
+	li	a2, GD_SIZE
+
+1:	lw	a3, 0(a1)
+	sw	a3, 0(a0)
+	addiu	a0, 4
+	addiu	a1, 4
+	subu	a2, 4
+	bgt	a2, zero, 1b
 	 nop
-#endif
 
 	/* Clear the .bss section */
 	la	a0, __bss_start
@@ -253,6 +267,11 @@ reset:
 	addiu	a0, 4
 	ble	a0, a1, 1b
 	 nop
+#elif !defined(CONFIG_TPL_BUILD)
+	/* Initialize caches... */
+	bal	mips_cache_reset
+	 nop
+#endif
 
 #ifndef CONFIG_TPL_BUILD
 	/* Bootup secondary CPU */

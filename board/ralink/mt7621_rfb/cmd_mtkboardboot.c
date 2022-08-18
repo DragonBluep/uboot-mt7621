@@ -18,6 +18,8 @@
 #include <spi_flash.h>
 #include <jffs2/jffs2.h>
 
+#include "../common/dual_image.h"
+
 static struct spi_flash *get_sf_dev(void)
 {
 	unsigned int bus = CONFIG_SF_DEFAULT_BUS;
@@ -56,6 +58,10 @@ static int mtkboardboot(void)
 	uint32_t load_addr, kernel_load_addr, size;
 	u8 pnum;
 	int ret;
+
+#ifdef CONFIG_MTK_DUAL_IMAGE_SUPPORT
+	dual_image_check();
+#endif
 
 	ret = mtdparts_init();
 	if (!ret) {
