@@ -31,27 +31,9 @@ config MT7621_DRAM_FREQ
 	default "1200" if MT7621_DRAM_FREQ_1200
 	default "1200"
 
-config MT7621_DRAM_INIT_USER_PARAM_FIRST
-	bool "Use user-prefered DRAM initialization parameters first"
-	default n
-
-choice
-	prompt "Source of DRAM init parameters"
-	default MT7621_DRAM_INIT_USER_PARAM_PREDEFINED
-	depends on MT7621_DRAM_INIT_USER_PARAM_FIRST
-
-config MT7621_DRAM_INIT_USER_PARAM_PREDEFINED
-	bool "Pre-defined"
-
-config MT7621_DRAM_INIT_USER_PARAM_BOARD_PROVIDED
-	bool "Board-provided"
-
-endchoice
-
 choice
 	prompt "Prefered DDR2 init parameters"
 	default MT7621_DRAM_DDR2_1024M
-	depends on MT7621_DRAM_INIT_USER_PARAM_PREDEFINED
 
 config MT7621_DRAM_DDR2_512M
 	bool "64MB"
@@ -73,7 +55,6 @@ endchoice
 choice
 	prompt "Prefered DDR3 init parameters"
 	default MT7621_DRAM_DDR3_2048M
-	depends on MT7621_DRAM_INIT_USER_PARAM_PREDEFINED
 
 config MT7621_DRAM_DDR3_1024M
 	bool "128MB"
@@ -89,18 +70,8 @@ config MT7621_DRAM_DDR3_4096M
 
 endchoice
 
-config MT7621_DRAM_INIT_AUTO_PROBE
-	bool "Do auto probing if user-prefered parameters fails"
-	depends on MT7621_DRAM_INIT_USER_PARAM_FIRST
-	default y
-
-config MT7621_RESET_WHEN_DRAMC_FAIL
-	bool "Reset the chip if failed to initialize DRAM"
-	depends on MACH_MT7621
-	default y
-
 config MT7621_DRAMC_DEBUG
 	bool "Enable verbose output during DRAMC initialization"
-	depends on MACH_MT7621
+	default y
 
 endmenu

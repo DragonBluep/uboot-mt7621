@@ -20,16 +20,29 @@
 /* Well known TFTP port # */
 #define WELL_KNOWN_PORT	69
 /* Millisecs to timeout for lost pkt */
+#if defined(CONFIG_CMD_NMRP)
+#define TIMEOUT		4000UL
+#else
 #define TIMEOUT		5000UL
+#endif
 #ifndef	CONFIG_NET_RETRY_COUNT
 /* # of timeouts before giving up */
+#if defined(CONFIG_CMD_NMRP)
+# define TIMEOUT_COUNT	8
+#else
 # define TIMEOUT_COUNT	10
+#endif
 #else
 # define TIMEOUT_COUNT  (CONFIG_NET_RETRY_COUNT * 2)
 #endif
 /* Number of "loading" hashes per line (for checking the image size) */
 #define HASHES_PER_LINE	65
 
+#if defined(CONFIG_CMD_NMRP)
+#include "nmrp.h"
+extern int nmrptftp_firmware;
+extern unsigned char NmrpServerEther[6];
+#endif
 /*
  *	TFTP operations.
  */
@@ -323,6 +336,28 @@ static void tftp_complete(void)
 	}
 	puts("\ndone\n");
 	net_set_state(NETLOOP_SUCCESS);
+#if defined(CONFIG_CMD_NMRP)
+    if (Nmrp_getState() == NMRP_STATE_TFTPUPLOADING)
+    {
+        net_set_state(NETLOOP_CONTINUE);
+        nmrptftp_firmware = 1;
+        if (net_boot_file_size > 0) 
+        {
+            printf("Bytes transferred = %d (%x hex)\n",
+                            net_boot_file_size,
+                            net_boot_file_size);
+            printf("fileaddr = %ld (%lx hex)\n",
+                            load_addr,
+                            load_addr);
+            env_set_hex("filesize", net_boot_file_size);
+            env_set_hex("fileaddr", load_addr);
+        }
+        net_set_udp_handler(NULL);
+        net_set_arp_handler(NULL);
+        net_set_timeout_handler(0, NULL);
+    }
+#endif
+
 }
 
 static void tftp_send(void)
@@ -388,6 +423,15 @@ static void tftp_send(void)
 		break;
 
 	case STATE_OACK:
+#if defined(CONFIG_CMD_NMRP)
+        xp = pkt;
+        s = (ushort *)pkt;
+        *s++ = htons(TFTP_OACK);
+        pkt = (uchar *)s;
+        pkt += sprintf((char *)pkt, "blksize%c%d%c", 0, tftp_block_size, 0);
+        len = pkt - xp;
+        break;
+#endif
 #ifdef CONFIG_MCAST_TFTP
 		/* My turn!  Start at where I need blocks I missed. */
 		if (tftp_mcast_active)
@@ -514,10 +558,28 @@ static void tftp_handler(uchar *pkt, unsigned dest, struct in_addr sip,
 #ifdef CONFIG_CMD_TFTPSRV
 	case TFTP_WRQ:
 		debug("Got WRQ\n");
+#if defined(CONFIG_CMD_NMRP)
+        if (Nmrp_getState() == NMRP_STATE_TFTPWAITING)
+        {
+            Nmrp_setState(NMRP_STATE_TFTPUPLOADING);
+        }
+#endif
 		tftp_remote_ip = sip;
 		tftp_remote_port = src;
 		tftp_our_port = 1024 + (get_timer(0) % 3072);
 		new_transfer();
+#if defined(CONFIG_CMD_NMRP)
+        for (i = 0; i+8 < len; i++) {
+            if (strcmp((char *)pkt+i, "blksize") == 0) 
+            {
+                tftp_block_size = (unsigned short)simple_strtoul((char *)pkt+i+8, NULL, 10);
+                tftp_state = STATE_OACK;
+                tftp_send();
+                tftp_state = STATE_RECV_WRQ;
+                break;
+            }
+        }
+#endif
 		tftp_send(); /* Send ACK(0) */
 		break;
 #endif
@@ -525,7 +587,11 @@ static void tftp_handler(uchar *pkt, unsigned dest, struct in_addr sip,
 	case TFTP_OACK:
 		debug("Got OACK: %s %s\n",
 		      pkt, pkt + strlen((char *)pkt) + 1);
+#if defined(CONFIG_CMD_NMRP)
+        tftp_state = STATE_DATA;
+#else
 		tftp_state = STATE_OACK;
+#endif
 		tftp_remote_port = src;
 		/*
 		 * Check for 'blksize' option.
@@ -686,12 +752,48 @@ static void tftp_handler(uchar *pkt, unsigned dest, struct in_addr sip,
 static void tftp_timeout_handler(void)
 {
 	if (++timeout_count > timeout_count_max) {
-		restart("Retry count exceeded");
+#ifdef CONFIG_CMD_TFTPSRV
+#if defined(CONFIG_CMD_NMRP)
+        if (Nmrp_getState() == NMRP_STATE_TFTPUPLOADING)
+        {
+            net_set_timeout_handler(0, NULL);
+            nmrptftp_firmware = 2;
+            printf("\nnmrp tftp server timeout.\n");
+        }
+        else
+        {
+            net_set_udp_handler(NULL);
+            net_set_timeout_handler(0, NULL);
+            printf("\ntftp server timeout exit.\n");
+        }
+#else
+        restart("Retry count exceeded");
+#endif
+#else
+        restart("Retry count exceeded");
+#endif
 	} else {
-		puts("T ");
-		net_set_timeout_handler(timeout_ms, tftp_timeout_handler);
-		if (tftp_state != STATE_RECV_WRQ)
-			tftp_send();
+#if defined(CONFIG_CMD_NMRP)
+        if ((Nmrp_getState() <= NMRP_STATE_CONFIGING) &&
+            (Nmrp_getState() > NMRP_STATE_INIT))
+        {
+            printf("tftp server nmrp state < config quit.\n");
+            net_set_udp_handler(NULL);
+            net_set_timeout_handler(0, NULL);
+        }
+        else
+        {
+            puts("T ");
+            net_set_timeout_handler(timeout_ms, tftp_timeout_handler);
+            if (tftp_state != STATE_RECV_WRQ)
+                tftp_send();
+        }
+#else
+        puts("T ");
+        net_set_timeout_handler(timeout_ms, tftp_timeout_handler);
+        if (tftp_state != STATE_RECV_WRQ)
+            tftp_send();
+#endif
 	}
 }
 
@@ -851,6 +953,7 @@ void tftp_start_server(void)
 	timeout_count_max = tftp_timeout_count_max;
 	timeout_count = 0;
 	timeout_ms = TIMEOUT;
+	net_boot_file_size = 0;
 	net_set_timeout_handler(timeout_ms, tftp_timeout_handler);
 
 	/* Revert tftp_block_size to dflt */

@@ -11,6 +11,9 @@
 #include <cli.h>
 #include <console.h>
 #include <version.h>
+#if defined(CONFIG_NETGEAR_UPGRADE_MODEL_SET_WAX202)
+#include <asm-generic/led.h>
+#endif
 
 /*
  * Board-specific Platform code can reimplement show_boot_progress () if needed
@@ -50,6 +53,8 @@ void main_loop(void)
 
 	cli_init();
 
+	env_reset();
+
 	run_preboot_environment_command();
 
 #if defined(CONFIG_UPDATE_TFTP)
@@ -59,6 +64,17 @@ void main_loop(void)
 	s = bootdelay_process();
 	if (cli_process_fdt(&s))
 		cli_secure_boot_cmd(s);
+
+#if defined(CONFIG_NETGEAR_UPGRADE_MODEL_SET_WAX202)
+    led_dev_init();
+#endif
+#if defined(CONFIG_CMD_NMRP)
+    if(env_get("fenv_factory")  && !strcmp(env_get("fenv_factory"),"off"))
+    {
+        printf("nmrp activated\n");
+        net_loop(NMRP);
+    }
+#endif
 
 	autoboot_command(s);
 

@@ -20,7 +20,8 @@ static int do_mtkboardboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	const char *ep;
 
 #ifdef CONFIG_MTK_DUAL_IMAGE_SUPPORT
-	dual_image_check();
+	if(env_get("fenv_factory")  && !strcmp(env_get("fenv_factory"),"off"))
+		dual_image_check();
 #endif
 
 	ep = env_get("autostart");
@@ -31,6 +32,12 @@ static int do_mtkboardboot(cmd_tbl_t *cmdtp, int flag, int argc,
 
 #ifndef CONFIG_ENABLE_NAND_NMBM
 	run_command("nboot firmware", 0);
+
+	sprintf(cmd, "nboot 0x%08x nand0 0x%08x",
+		CONFIG_SYS_LOAD_ADDR,
+		CONFIG_DEFAULT_NAND_KERNEL_OFFSET + NAND_BLOCK_SIZE);
+
+	run_command(cmd, 0);
 
 	sprintf(cmd, "nboot 0x%08x nand0 0x%08x",
 		CONFIG_SYS_SDRAM_BASE + SZ_32M,

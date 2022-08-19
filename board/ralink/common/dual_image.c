@@ -315,6 +315,13 @@ int dual_image_check(void)
 	bool deadc0de = false;
 	void *flash;
 	int ret;
+	char cmd[64];
+	size_t data_load_addr;
+	char  *image1_tag_flag , *image1_check_result;
+	char  *image2_tag_flag , *image2_check_result;
+	size_t image1_check_size = 0;
+	size_t image2_check_size = 0;
+	int image1_have_tag,image2_have_tag;
 
 	printf("\nStarting dual image checking ...\n");
 
@@ -341,35 +348,97 @@ int dual_image_check(void)
 		return -1;
 	}
 
-	printf("Verifying main image at 0x%llx...\n", image1_off);
-	ret = verify_image(flash, image1_off, image1_partsize, &image1_size);
-	if (ret < 0) {
-		printf("Dual image checking is bypassed\n");
-		return 0;
+	data_load_addr = CONFIG_SYS_LOAD_ADDR;
+
+	/* check image 1 */
+	snprintf(cmd, sizeof(cmd), "nand read 0x%x 0x%llx 0x%x", data_load_addr,image1_off,NAND_BLOCK_SIZE);
+	run_command(cmd, 0);
+	run_command("check_image 1" ,0);
+	image1_check_size = env_get_hex("check_size",0);
+	if(image1_check_size)
+	{
+		snprintf(cmd, sizeof(cmd), "nand read 0x%x 0x%llx 0x%x", data_load_addr,image1_off,image1_check_size);
+		run_command(cmd, 0);
+		run_command("check_image" ,0);
+	}
+	image1_tag_flag = env_get("have_tag");
+	image1_check_result = env_get("checkimg_result");
+	image1_ok = 1;
+
+	if(image1_tag_flag && image1_check_result && !strcmp(image1_tag_flag,"yes") && !strcmp(image1_check_result,"bad"))
+	{
+		image1_ok = 0;
 	}
 
-	if (ret == 0) {
-		ret = verify_rootfs(flash, image1_off + image1_size,
-				    image1_partsize - image1_size,
-				    &image1_padding_bytes, &rootfs1_size);
+	if(image1_ok)
+	{
+		image1_have_tag = 0;
+		if(image1_tag_flag && image1_check_result && !strcmp(image1_tag_flag,"yes") && !strcmp(image1_check_result,"ok"))
+		{
+			image1_off += NAND_BLOCK_SIZE;
+			image1_partsize -= NAND_BLOCK_SIZE;
+			image1_have_tag = 1;
+		}
+		printf("Verifying main image at 0x%llx size 0x%llx...\n", image1_off,image1_partsize);
+		ret = verify_image(flash, image1_off, image1_partsize, &image1_size);
+		if (ret < 0) {
+			printf("Dual image checking is bypassed\n");
+			return 0;
+		}
+
+		if (ret == 0) {
+			ret = verify_rootfs(flash, image1_off + image1_size,
+					    image1_partsize - image1_size,
+					    &image1_padding_bytes, &rootfs1_size);
+		}
+
+		image1_ok = ret == 0;
 	}
 
-	image1_ok = ret == 0;
+	/* check image 2 */
+	snprintf(cmd, sizeof(cmd), "nand read 0x%x 0x%llx 0x%x", data_load_addr,image2_off,NAND_BLOCK_SIZE);
+	run_command(cmd, 0);
+	run_command("check_image 1" ,0);
+	image2_check_size = env_get_hex("check_size",0);
+	if(image2_check_size)
+	{
+		snprintf(cmd, sizeof(cmd), "nand read 0x%x 0x%llx 0x%x", data_load_addr,image2_off,image2_check_size);
+		run_command(cmd, 0);
+		run_command("check_image" ,0);
+	}
+	image2_tag_flag = env_get("have_tag");
+	image2_check_result = env_get("checkimg_result");
+	image2_ok = 1;
 
-	printf("Verifying backup image at 0x%llx...\n", image2_off);
-	ret = verify_image(flash, image2_off, image2_partsize, &image2_size);
-	if (ret < 0) {
-		printf("Dual image checking is bypassed\n");
-		return 0;
+	if(image2_tag_flag && image2_check_result && !strcmp(image2_tag_flag,"yes") && !strcmp(image2_check_result,"bad"))
+	{
+		image2_ok = 0;
 	}
 
-	if (ret == 0) {
-		ret = verify_rootfs(flash, image2_off + image2_size,
-				    image2_partsize - image2_size,
-				    &image2_padding_bytes, &rootfs2_size);
-	}
+	if(image2_ok)
+	{
+		image2_have_tag = 0;
+		if(image2_tag_flag && image2_check_result && !strcmp(image2_tag_flag,"yes") && !strcmp(image2_check_result,"ok"))
+		{
+			image2_off += NAND_BLOCK_SIZE;
+			image2_partsize -= NAND_BLOCK_SIZE;
+			image2_have_tag = 1;
+		}
+		printf("Verifying backup image at 0x%llx size 0x%llx...\n", image2_off,image2_partsize);
+		ret = verify_image(flash, image2_off, image2_partsize, &image2_size);
+		if (ret < 0) {
+			printf("Dual image checking is bypassed\n");
+			return 0;
+		}
 
-	image2_ok = ret == 0;
+		if (ret == 0) {
+			ret = verify_rootfs(flash, image2_off + image2_size,
+					    image2_partsize - image2_size,
+					    &image2_padding_bytes, &rootfs2_size);
+		}
+
+		image2_ok = ret == 0;
+	}
 
 	if (!image1_ok && !image2_ok) {
 		printf("Fatal: both images are broken.\n");
@@ -379,6 +448,22 @@ int dual_image_check(void)
 	if (image1_ok && image2_ok) {
 		printf("Passed\n");
 		return 0;
+	}
+
+	ret = get_mtd_part_info(CONFIG_MTK_DUAL_IMAGE_PARTNAME_MAIN,
+		&image1_off, &image1_partsize);
+	if (ret) {
+		printf("Fatal: failed to get main image partition\n");
+		printf("Dual image checking is bypassed\n");
+		return -1;
+	}
+
+	ret = get_mtd_part_info(CONFIG_MTK_DUAL_IMAGE_PARTNAME_BACKUP,
+		&image2_off, &image2_partsize);
+	if (ret) {
+		printf("Fatal: failed to get backup image partition\n");
+		printf("Dual image checking is bypassed\n");
+		return -1;
 	}
 
 	if (!image2_ok) {
@@ -394,7 +479,10 @@ int dual_image_check(void)
 			return 4;
 		}
 
-		printf("Restoring backup image ...\n");
+		if(image1_have_tag && (image1_check_size > 0))
+			image_total_size = image1_check_size;
+
+		printf("Restoring backup image ... size 0x%llx\n",image_total_size);
 		ret = copy_firmware(flash, image1_off, image2_off,
 			image_total_size, deadc0de);
 	} else {
@@ -410,7 +498,10 @@ int dual_image_check(void)
 			return 4;
 		}
 
-		printf("Restoring main image ...\n");
+		if(image2_have_tag && (image2_check_size > 0))
+			image_total_size = image2_check_size;
+
+		printf("Restoring main image ... size 0x%llx\n",image_total_size);
 		ret = copy_firmware(flash, image2_off, image1_off,
 			image_total_size, deadc0de);
 	}

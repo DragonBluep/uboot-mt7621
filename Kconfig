@@ -502,3 +502,23 @@ source "lib/Kconfig"
 source "test/Kconfig"
 
 source "failsafe/Kconfig"
+
+menuconfig TW
+	bool "TW Options"
+	default y
+
+if TW
+choice
+	prompt "model select"
+	default NETGEAR_UPGRADE_MODEL_SET_WAX202
+
+config NETGEAR_UPGRADE_MODEL_SET_WAX202
+	bool "WAX202"
+
+endchoice
+
+config NETGEAR_UPGRADE_MODEL_SET
+	string
+	default "WAX202" if NETGEAR_UPGRADE_MODEL_SET_WAX202
+	default "WAX202"
+endif

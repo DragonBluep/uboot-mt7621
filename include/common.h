@@ -213,6 +213,10 @@ int env_get_yesno(const char *var);
 int env_set(const char *varname, const char *value);
 
 /**
+ * env_reset() - reset env exp fenv_xxx
+ */
+void env_reset(void);
+/**
  * env_set_ulong() - set an environment variable to an integer
  *
  * @varname: Variable to adjust

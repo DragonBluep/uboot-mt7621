@@ -718,6 +718,35 @@ int env_get_f(const char *name, char *buf, unsigned len)
 	return -1;
 }
 
+void env_reset(void)
+{
+	if (strcmp("yes", env_get("invaild_env")) == 0)
+	{
+	     char ethaddr[32] = {0};
+            char fenv_model[32] = {0};
+            char fenv_region[32] = {0};
+            char fenv_factory[32] = {0};
+
+            if(env_get("ethaddr"))
+                strncpy(ethaddr, env_get("ethaddr"), 32);
+            if(env_get("fenv_model"))
+                strncpy(fenv_model, env_get("fenv_model"), 32);
+            if(env_get("fenv_region"))
+                strncpy(fenv_region, env_get("fenv_region"), 32);
+            if(env_get("fenv_factory"))
+                strncpy(fenv_factory, env_get("fenv_factory"), 32);
+
+            set_default_env("### invaild_env is yes ###\n",H_INTERACTIVE);
+
+            /* resync tw factory params */
+            env_set("ethaddr", ethaddr);
+            env_set("fenv_model", fenv_model);
+            env_set("fenv_region", fenv_region);
+            env_set("fenv_factory", fenv_factory);
+            env_save();
+	}
+}
+
 /**
  * Decode the integer value of an environment variable and return it.
  *

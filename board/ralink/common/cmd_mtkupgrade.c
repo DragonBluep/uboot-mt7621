@@ -20,6 +20,8 @@
 #include "spl_helper.h"
 #include "flash_helper.h"
 
+#include <aes.h>
+
 #define BUF_SIZE 1024
 
 #define COLOR_PROMPT	"\x1b[0;33m"
@@ -32,7 +34,54 @@ enum file_type {
 	TYPE_BL,
 	TYPE_BL_ADV,
 	TYPE_FW
+#if defined (CONFIG_CMD_NMRP)
+	,TYPE_STR
+#endif
 };
+
+#define ENCRPTED_IMG_TAG  "encrpted_img"
+#define AES_KEY_256  "he9-4+M!)d6=m~we1,q2a3d1n&2*Z^%8$"
+#define AES_NOR_IV  "J%1iQl8$=lm-;8AE@"
+
+typedef  struct
+{
+    char model[32];        /*model name*/
+    char region[32];       /*region*/
+    char version[64];      /*version*/
+    char dateTime[64];     /*date*/
+    char reserved[320];    /*reserved space, if add struct member, please adjust this reserved size to keep the head total size is 512 bytes*/
+} __attribute__((__packed__)) image_head_t;
+
+typedef  struct
+{
+    char checkSum[4];      /*checkSum*/
+} __attribute__((__packed__)) image_tail_t;
+
+#if defined (CONFIG_CMD_NMRP)
+typedef struct
+{
+    char name[32];
+    char version[32];
+    u32 size;
+    u32 crc;
+    char padding[56];
+    char data[0];
+} __attribute__((__packed__)) DAI_LANGUAGE_PARTITION_T;
+#endif
+
+typedef struct
+{
+    char checkSum[4];
+    char tag[32];
+    int partSize;
+    char reserve[24];
+}__attribute__((__packed__)) PARTITION_HEADER_T;
+
+#define MTD_BOOT_TAG               "MTD_BOOT_TAG"
+#define MTD_IMAGEA_TAG              "MTD_IMAGEA_TAG"
+#define MTD_IMAGEB_TAG              "MTD_IMAGEB_TAG"
+
+int decrypt_image(void);
 
 static void cli_highlight_input(const char *prompt)
 {
@@ -732,6 +781,7 @@ static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size,
 	printf("\n" COLOR_PROMPT "*** Firmware upgrade completed! ***"
 	       COLOR_NORMAL "\n");
 
+#if 0
 #ifdef CONFIG_MTK_DUAL_IMAGE_SUPPORT
 	if (!get_mtd_part_info(CONFIG_MTK_DUAL_IMAGE_PARTNAME_BACKUP,
 			      &part_off, &part_size)) {
@@ -739,6 +789,7 @@ static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size,
 		mtk_board_flash_erase(flash, part_off,
 			mtk_board_get_flash_erase_size(flash));
 	}
+#endif
 #endif
 
 	if (no_prompt)
@@ -767,6 +818,90 @@ static int write_firmware(void *flash, size_t data_addr, uint32_t data_size)
 	return _write_firmware(flash, data_addr, data_size, 0);
 }
 
+#if defined (CONFIG_CMD_NMRP)
+static int _write_str(void *flash, size_t data_addr, uint32_t data_size)
+{
+	uint32_t erase_size;
+	uint64_t part_off, part_size, tmp;
+	uint64_t str_off;
+	int ret;
+
+	if (get_mtd_part_info("Language", &part_off, &part_size)) {
+		printf(COLOR_ERROR "*** MTD partition 'firmware' does not "
+		       "exist! ***" COLOR_NORMAL "\n");
+		return CMD_RET_FAILURE;
+	}
+
+	if (!part_off) {
+		printf(COLOR_ERROR "*** MTD partition 'Language' is not "
+		       "valid! ***" COLOR_NORMAL "\n");
+		return CMD_RET_FAILURE;
+	}
+
+	tmp = part_off;
+
+	if (do_div(tmp, mtk_board_get_flash_erase_size(flash))) {
+		printf(COLOR_ERROR "*** MTD partition 'Language' does not "
+		       "start on erase boundary! ***" COLOR_NORMAL "\n");
+		return CMD_RET_FAILURE;
+	}
+
+	if (part_size < data_size) {
+		printf("\n" COLOR_ERROR "*** Error: new Language is larger "
+		       "than mtd partition 'Language' ***" COLOR_NORMAL "\n");
+		printf(COLOR_ERROR "*** Operation Aborted! ***"
+		       COLOR_NORMAL "\n");
+		return CMD_RET_FAILURE;
+	}
+
+	printf("\n");
+
+	erase_size = ALIGN(data_size, mtk_board_get_flash_erase_size(flash));
+	str_off = (uint64_t)env_get_hex("stringtableoffset", 0);
+	if(str_off < part_off || str_off > (part_off + part_size))
+		return CMD_RET_FAILURE;
+	part_off = str_off;
+
+	printf("Erasing from 0x%llx to 0x%llx, size 0x%x ... ", part_off,
+	       part_off + erase_size - 1, erase_size);
+
+	ret = mtk_board_flash_erase(flash, part_off, erase_size);
+
+	if (ret) {
+		printf("Fail\n");
+		printf(COLOR_ERROR "*** Flash erasure [%llx-%llx] failed! ***"
+		       COLOR_NORMAL "\n", part_off, part_off + erase_size - 1);
+		return CMD_RET_FAILURE;
+	}
+
+	printf("OK\n");
+
+	printf("Writting from 0x%x to 0x%llx, size 0x%x ... ", data_addr,
+	       part_off, data_size);
+
+	ret = mtk_board_flash_write(flash, part_off, data_size,
+				    (void *)data_addr);
+
+	if (ret) {
+		printf("Fail\n");
+		printf(COLOR_ERROR "*** Flash program [%llx-%llx] failed! ***"
+		       COLOR_NORMAL "\n", part_off, part_off + data_size - 1);
+		return CMD_RET_FAILURE;
+	}
+
+	printf("OK\n");
+
+	printf("\n" COLOR_PROMPT "*** Firmware upgrade completed! ***"
+	       COLOR_NORMAL "\n");
+
+	return CMD_RET_SUCCESS;
+}
+static int write_str(void *flash, size_t data_addr, uint32_t data_size)
+{
+	return _write_str(flash, data_addr, data_size);
+}
+#endif
+
 static int write_data(enum file_type ft, size_t addr, uint32_t data_size)
 {
 	void *flash;
@@ -790,6 +925,14 @@ static int write_data(enum file_type ft, size_t addr, uint32_t data_size)
 			return CMD_RET_FAILURE;
 
 		break;
+
+#if defined (CONFIG_CMD_NMRP)
+	case TYPE_STR:
+		if (write_str(flash, addr, data_size))
+			return CMD_RET_FAILURE;
+
+		break;
+#endif
 
 	default:
 		return CMD_RET_FAILURE;
@@ -856,6 +999,7 @@ static int do_mtkupgrade(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	size_t data_load_addr;
 	uint32_t data_size = 0;
+	char  *tag_flag , *check_result;
 
 	if (argc < 2) {
 		part = select_part();
@@ -877,23 +1021,64 @@ static int do_mtkupgrade(cmd_tbl_t *cmdtp, int flag, int argc,
 		ft = TYPE_FW;
 		ft_name = "Firmware";
 		env_name = "bootfile.firmware";
+#if defined (CONFIG_CMD_NMRP)
+	} else if (!strcasecmp(part, "str")) {
+		ft = TYPE_STR;
+		ft_name = "Language";
+		env_name = "bootfile.Language";
+#endif
 	} else {
 		printf("Error: invalid type '%s'\n", part);
 		return EINVAL;
 	}
 
-	printf("\n" COLOR_PROMPT "*** Upgrading %s ***" COLOR_NORMAL
-	       "\n\n", ft_name);
+#if defined (CONFIG_CMD_NMRP)
+	if(TYPE_STR != ft)
+	{
+#endif
+		printf("\n" COLOR_PROMPT "*** Upgrading %s ***" COLOR_NORMAL
+		       "\n\n", ft_name);
 
-	data_load_addr = CONFIG_SYS_LOAD_ADDR;
+		data_load_addr = CONFIG_SYS_LOAD_ADDR;
 
-	/* Load data */
-	if (load_data(data_load_addr, &data_size, env_name) != CMD_RET_SUCCESS)
-		return CMD_RET_FAILURE;
+		/* Load data */
+		if (load_data(data_load_addr, &data_size, env_name) != CMD_RET_SUCCESS)
+			return CMD_RET_FAILURE;
 
-	printf("\n" COLOR_PROMPT "*** Loaded %d (0x%x) bytes at 0x%08x ***"
-	       COLOR_NORMAL "\n\n", data_size, data_size, data_load_addr);
+		printf("\n" COLOR_PROMPT "*** Loaded %d (0x%x) bytes at 0x%08x ***"
+		       COLOR_NORMAL "\n\n", data_size, data_size, data_load_addr);
+		env_set_hex("filesize", data_size);
 
+		if (0 != decrypt_image())
+			return CMD_RET_FAILURE;
+		data_size = env_get_hex("filesize", 0);
+
+		run_command("check_image" ,0);
+		tag_flag = env_get("have_tag");
+		check_result = env_get("checkimg_result");
+
+		if(tag_flag && check_result && !strcmp(tag_flag,"yes") && !strcmp(check_result,"bad"))
+		{
+			printf("Invalid image format\n");
+			return CMD_RET_FAILURE;
+		}
+#if defined (CONFIG_CMD_NMRP)
+	}
+	else
+	{
+		printf("\n" COLOR_PROMPT "*** Upgrading %s ***" COLOR_NORMAL
+		       "\n\n", ft_name);
+		run_command("str_blks" ,0);
+		if (strcmp("ok", env_get("str_blk_crc")) == 0 &&
+			strcmp("good", env_get("filesize_result")) == 0)
+		{
+			data_size = env_get_hex("filesize", 0);
+			data_load_addr = CONFIG_SYS_LOAD_ADDR;
+		}
+		else
+			return CMD_RET_FAILURE;
+	}
+#endif
 	/* Write data */
 	if (write_data(ft, data_load_addr, data_size) != CMD_RET_SUCCESS)
 		return CMD_RET_FAILURE;
@@ -908,6 +1093,249 @@ U_BOOT_CMD(mtkupgrade, 2, 0, do_mtkupgrade,
 	"          bl      - Bootloader\n"
 	"          bladv   - Bootloader (Advanced)\n"
 	"          fw      - Firmware\n"
+	"          str      - strtable for nmrp\n"
+);
+
+extern void led_time_tick(ulong times);
+
+int decrypt_image(void)
+{
+    ulong size = 0;
+    ulong file_size = 0;
+    unsigned char *src_addr = NULL;
+    unsigned char *dst_addr = NULL;
+    image_head_t *image_head = NULL;
+    char *image_tag = NULL;
+    char *fenv_model = NULL;
+    //char *fenv_region = NULL;
+    ulong image_size = 0;
+    ulong encrypted_size = 0;
+    ulong block_size = 0;
+    ulong checksum = 0;
+    ulong curr_checksum = 0;
+    unsigned char key_exp[AES256_EXPAND_KEY_LENGTH] = {0};
+    unsigned int aes_blocks = 0;
+
+    env_set("decrypt_result", "bad");
+
+    size = sizeof(image_head_t) + strlen(ENCRPTED_IMG_TAG) + 4 * 2;
+
+    file_size = env_get_hex("filesize", 0);
+    if (file_size < size)
+    {
+        printf("Image head not found!\n");
+        goto good;
+    }
+
+    src_addr = (unsigned char *)load_addr;
+    dst_addr = (unsigned char *)load_addr;
+
+    image_head = (image_head_t *)src_addr;
+    src_addr += sizeof(image_head_t);
+
+    image_tag = (char *)src_addr;
+    if (strncmp(image_tag, ENCRPTED_IMG_TAG, strlen(ENCRPTED_IMG_TAG)))
+    {
+        printf("Encrpted tag not found!\n");
+        goto good;
+    }
+    src_addr += strlen(ENCRPTED_IMG_TAG);
+
+    printf("Image is encrypted\n");
+    printf("model: %s\n", image_head->model);
+    printf("region: %s\n", image_head->region);
+    printf("version: %s\n", image_head->version);
+    printf("dateTime: %s\n", image_head->dateTime);
+
+    fenv_model = env_get("fenv_model");
+    if (!fenv_model || strlen(image_head->model) == 0 || strstr(fenv_model, image_head->model) == NULL)
+    {
+        printf("Image model not match!\n");
+        return 1;
+    }
+#if 0
+    fenv_region = env_get("fenv_region");
+    if (!fenv_region || strcmp(fenv_region, image_head->region))
+    {
+        printf("Image region not match!\n");
+        return 1;
+    }
+#endif
+
+    image_size = ntohl(*(ulong *)src_addr);
+    src_addr += sizeof(ulong);
+    printf("size: 0x%lx\n", image_size);
+
+    encrypted_size = DIV_ROUND_UP(image_size, AES_BLOCK_LENGTH) * AES_BLOCK_LENGTH;
+
+    block_size = ntohl(*(ulong *)src_addr);
+    src_addr += sizeof(ulong);
+    printf("block size: 0x%lx\n", block_size);
+    if (block_size % AES_BLOCK_LENGTH)
+    {
+        printf("Image block size not times of AES_BLOCK_LENGTH!\n");
+        return 1;
+    }
+
+    if (file_size < (size + encrypted_size + sizeof(image_tail_t)))
+    {
+        printf("Image incomplete!\n");
+        return 1;
+    }
+
+    checksum = ntohl(*(ulong *)(src_addr + encrypted_size));
+    printf("checksum: 0x%lx\n", checksum);
+
+    curr_checksum = crc32_no_comp(0, (uchar *)load_addr, size + encrypted_size);
+    if (curr_checksum != checksum)
+    {
+        printf("Image checksum error!\n");
+        return 1;
+    }
+
+    printf("Decrypt image...\n");
+
+    aes_expand_key((u8 *)AES_KEY_256, AES256_KEY_LENGTH, key_exp);
+    for (size = 0; size < encrypted_size; size += block_size)
+    {
+        if (size + block_size > encrypted_size)
+        {
+            block_size = encrypted_size - size;
+        }
+
+        aes_blocks = DIV_ROUND_UP(block_size, AES_BLOCK_LENGTH);
+        aes_cbc_decrypt_blocks(AES256_KEY_LENGTH, key_exp, (u8 *)AES_NOR_IV, (u8 *)src_addr, (u8 *)dst_addr, aes_blocks);
+
+        src_addr += block_size;
+        dst_addr += block_size;
+        led_time_tick(get_timer(0));
+    }
+    printf("Decrypt finish\n");
+
+    env_set_hex("filesize", image_size);
+
+    env_set("filesize_result", "good");
+
+good:
+    env_set("decrypt_result", "good");
+    return 0;
+}
+
+static int do_write_img(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+{
+    size_t data_load_addr;
+    uint32_t data_size = 0;
+
+    //
+    if (0 != decrypt_image())
+        return CMD_RET_FAILURE;
+
+    data_load_addr = load_addr;
+
+    data_size = env_get_hex("filesize", 0);
+
+    /* Write data */
+    if (write_firmware_failsafe(data_load_addr, data_size) != CMD_RET_SUCCESS)
+        return CMD_RET_FAILURE;
+
+    return CMD_RET_SUCCESS;
+}
+
+U_BOOT_CMD(writeimg, 2, 0, do_write_img,
+    "write firmware",
+    "write firmware\n"
+);
+
+#if defined (CONFIG_CMD_NMRP)
+#define CONFIG_STR_BLK_SIZE                   0x40000
+int do_read_str_blks (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+    DAI_LANGUAGE_PARTITION_T *str_hdr = (DAI_LANGUAGE_PARTITION_T *)load_addr;
+    const unsigned char *str_addr = (const unsigned char *)load_addr;
+    u32 str_size = CONFIG_STR_BLK_SIZE;
+    u32 crc = str_hdr->crc;
+
+    uint32_t data_size = 0;
+
+    if (0 != decrypt_image())
+        return CMD_RET_FAILURE;
+
+    data_size = env_get_hex("filesize", 0);
+    if(CONFIG_STR_BLK_SIZE >= data_size)
+        env_set("filesize_result", "good");
+    else
+        env_set("filesize_result", "bad");
+
+    printf("data_size:0x%x\n",data_size);
+
+    str_hdr->crc = 0;
+    if (crc32(0,str_addr,str_size) != uimage_to_cpu(crc))
+        env_set("str_blk_crc","error");
+    else
+        env_set("str_blk_crc","ok");
+    str_hdr->crc = crc;
+
+    return 0;
+}
+
+U_BOOT_CMD(
+	str_blks, 1,	1, do_read_str_blks,
+	"check str table blk from load_addr",
+	""
+);
+#endif
+
+int do_check_image (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+    PARTITION_HEADER_T *image_hdr = (PARTITION_HEADER_T *)load_addr;
+    const unsigned char *image_addr = (const unsigned char *)(load_addr + NAND_BLOCK_SIZE);
+    unsigned char *addr = NULL;
+    __u32  image_size = image_hdr->partSize;
+    __u32 image_crc = 0;
+    char image_tag[32] = "";
+    __u32 crc = 0;
+    __u32 len = sizeof(image_tag)-1;
+
+    addr = (unsigned char *)load_addr;
+    image_crc = ntohl(*(__u32 *)addr);
+
+    strncpy(image_tag,image_hdr->tag,len);
+
+    env_set("checkimg_result", "bad");
+    env_set("have_tag", "yes");
+    env_set_hex("check_size",0);
+    if (strncmp(image_tag, MTD_IMAGEA_TAG, strlen(MTD_IMAGEA_TAG)) && strncmp(image_tag, MTD_IMAGEB_TAG, strlen(MTD_IMAGEB_TAG)))
+    {
+        printf("tag error!try no tag mode...\n");
+        env_set("have_tag", "no");
+        return 1;
+    }
+    printf("image tag:    %s\n",image_tag);
+
+    if(argc > 1 && simple_strtoul(argv[1], NULL, 10) == 1)
+    {
+        printf("get size :    0x%x\n",image_size);
+        env_set_hex("check_size",image_size+NAND_BLOCK_SIZE);
+        return 0;
+    }
+    crc = crc32_no_comp(0,image_addr,image_size);
+    printf("image size:   0x%x\n",image_size);
+    printf("checksum:     0x%x\n",crc);
+    printf("image crc:    0x%x\n",image_crc);
+    if (crc != image_crc)
+    {
+        printf("error checkSum\n");
+        return 1;
+    }
+    env_set("checkimg_result","ok");
+
+    return 0;
+}
+
+U_BOOT_CMD(
+	check_image,	2,	1,	do_check_image,
+	"check image in load_addr.",
+	""
 );
 
 static int run_image(size_t data_addr, uint32_t data_size)

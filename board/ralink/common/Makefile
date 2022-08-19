@@ -14,3 +14,5 @@ obj-y += cmd_mtkupgrade.o
 obj-y += cmd_mtkautoboot.o
 obj-$(CONFIG_MTK_DUAL_IMAGE_SUPPORT) 	+= dual_image.o
 endif
+
+#obj-y += led_ctrl.o

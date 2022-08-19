@@ -11,6 +11,12 @@
 #include <asm/types.h>
 #include <mach/mt7621_regs.h>
 
+#define MT7621_DRAMC_MEMPLL1_REG			0x0604
+#define   RG_MEPL_DIV2_SEL_S				  1
+#define   RG_MEPL_DIV2_SEL_M				  0x03
+
+#define MT7621_DRAMC_MEMPLL6_REG			0x0618
+
 DECLARE_GLOBAL_DATA_PTR;
 
 extern u32 mempll_get_clock(void);
@@ -70,6 +76,39 @@ void mt7621_get_clocks(u32 *pcpu_clk, u32 *pbus_clk, u32 *pxtal_clk)
 
 	if (pxtal_clk)
 		*pxtal_clk = xtal_clk;
+}
+
+u32 mempll_get_clock(void)
+{
+	void __iomem *sys_base, __iomem *dramc_base;
+	u32 bs, mempll, dividx, fb, xtal_sel, xtal_div, xtal_clk, ddr_clk;
+	const static u32 xtal_div_tbl[] = {0, 1, 2, 2};
+
+	sys_base = (void __iomem *) CKSEG1ADDR(MT7621_SYSCTL_BASE);
+	dramc_base = (void __iomem *) CKSEG1ADDR(MT7621_DRAMC_BASE);
+
+	bs = readl(sys_base + MT7621_SYS_SYSCFG0_REG);
+
+	xtal_sel = REG_GET_VAL(XTAL_MODE_SEL, bs);
+
+	if (xtal_sel <= 2)
+		xtal_clk = 20 * 1000 * 1000;
+	else if (xtal_sel <= 5)
+		xtal_clk = 40 * 1000 * 1000;
+	else
+		xtal_clk = 25 * 1000 * 1000;
+
+	mempll = readl(dramc_base + MT7621_DRAMC_MEMPLL6_REG);
+	dividx = REG_GET_VAL(RG_MEPL_PREDIV, mempll);
+	fb = REG_GET_VAL(RG_MEPL_FBDIV, mempll);
+	xtal_div = 1 << xtal_div_tbl[dividx];
+	ddr_clk = fb * xtal_clk / xtal_div;
+
+	bs = readl(dramc_base + MT7621_DRAMC_MEMPLL1_REG);
+	if (REG_GET_VAL(RG_MEPL_DIV2_SEL, bs) == 0)
+		ddr_clk *= 2;
+
+	return ddr_clk;
 }
 
 int get_clocks(void)

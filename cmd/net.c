@@ -457,3 +457,26 @@ U_BOOT_CMD(
 );
 
 #endif  /* CONFIG_CMD_LINK_LOCAL */
+
+#if defined(CONFIG_CMD_NMRP)
+int do_nmrp(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+    if (argc == 1)
+        return CMD_RET_USAGE;
+
+    if (net_loop(NMRP) < 0) {
+        printf("nmrp fail\n");
+        return 1;
+    }
+
+    return 0;
+}
+
+U_BOOT_CMD(
+    nmrp, 3, 1, do_nmrp,
+    "netgear nmrp tools",
+    "nmrp [args]"
+);
+
+#endif	/* CONFIG_CMD_DNS */
+

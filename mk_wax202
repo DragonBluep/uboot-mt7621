@@ -1,0 +1,16 @@
+#!/bin/sh
+
+DEFCONFIG=mt7621_nand_ax_wax202_defconfig
+BASEPATH=`pwd`
+cd ../../
+ROOTPATH=`pwd`
+export STAGING_DIR=${ROOTPATH}"/mtk-openwrt-lede-4.2.1.0/staging_dir/"
+CROSS_COMPILE=${ROOTPATH}"/mtk-openwrt-lede-4.2.1.0/staging_dir/toolchain-mipsel_24kc_gcc-7.5.0_musl-1.1.16/bin/mipsel-openwrt-linux-musl-"
+echo "CROSS_COMPILE:::${CROSS_COMPILE}"
+cd ${BASEPATH}
+make ${DEFCONFIG} 
+make CROSS_COMPILE=${CROSS_COMPILE}
+
+if [ -f u-boot-mt7621.bin ]; then
+	sha256sum u-boot-mt7621.bin > u-boot-checksum.txt
+fi
