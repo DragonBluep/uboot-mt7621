@@ -1,2 +1,31 @@
-<p><strong>Upgrade complete!</strong></p>
-<p>Rebooting ...</p>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<style type='text/css'>
+.warning{margin:50px 0;color:red;font-size:22px}
+</style>
+</head>
+<script type="text/javascript">
+var percent=1;
+var Timer;
+function uiOnload()
+{Timer=setTimeout("upStatus()",2200);}
+window.onload = uiOnload;
+function upStatus()
+{percent++;
+if(percent > 100){clearTimeout(Timer);document.getElementById('wait').style.display = 'none';
+document.getElementById('result').style.display = '';
+return;	}
+document.getElementById('time').innerHTML = 'Device is upgrading the firmware...' + percent + '%';	Timer = setTimeout('upStatus()',2200);}
+window.onload = uiOnload;
+</script>
+<body>
+<center>
+<div><center style='margin:50px 0;color:blue;font-size:24px'>D-Link Router Recovery Mode</center></div>
+<div id=wait><center style='margin:50px 0;font-size:15px'><span id=time>Device is upgrading the firmware... 1%</span></center></div>
+<div id=result style=display:none><center class=warning><span>Upgrade successfully!</span></center></div>
+<hr/><div><center class=warning>WARNING!!</center></div></center>
+<ul><li style='margin:50px 0 10px;font-size:14px'>Do not interrupt the update process,as it may demage the device</li></ul>
+<hr/>
+</body>
+</html>

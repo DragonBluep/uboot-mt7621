@@ -172,6 +172,15 @@ int menu_default_choice(struct menu *m, void **choice)
 	return -ENOENT;
 }
 
+void gpio_mode_config()
+{
+	u32 gpiomode;
+	
+	gpiomode = REG32(RALINK_REG_GPIOMODE);
+	gpiomode |= RALINK_GPIOMODE_DFT;
+	REGWRITE32(RALINK_REG_GPIOMODE, gpiomode);
+}
+
 /*
  * Displays the menu and asks the user to choose an item. *choice will point
  * to the private data of the item the user chooses. The user makes a choice
@@ -185,12 +194,44 @@ static inline int menu_interactive_choice(struct menu *m, void **choice)
 {
 	char cbuf[CONFIG_SYS_CBSIZE];
 	struct menu_item *choice_item = NULL;
-	int readret;
+	int readret = -1;
+	char *key = NULL;
+	// config GIPO mode
+	gpio_mode_config();
 
 	while (!choice_item) {
 		cbuf[0] = '\0';
 
 		menu_display(m);
+	
+		run_command("gpio clear 14", 0);
+		run_command("gpio set 13", 0);
+		run_command("gpio set 16", 0);
+		unsigned int gpio = 15;
+		unsigned int reset_value = 0;
+		int i=0;
+		for(i=0;i<3;i++)
+		{
+			mdelay(1000);
+			reset_value = check_reset_button(gpio);
+			
+			if(reset_value ==1)
+				break;
+			if(i == 2 && reset_value == 0){
+				printf("\nreset button press\n");
+				key = "4";
+				
+				if (key)
+					choice_item = menu_item_by_key(m, key);
+				
+				if (!choice_item)
+					m->timeout = 0;
+
+				break;
+			}
+		}
+		if(reset_value == 0)
+			break;
 
 		if (!m->item_choice) {
 			readret = cli_readline_into_buffer("Enter choice: ",
@@ -207,7 +248,7 @@ static inline int menu_interactive_choice(struct menu *m, void **choice)
 				return menu_default_choice(m, choice);
 			}
 		} else {
-			char *key = m->item_choice(m->item_choice_data);
+			key = m->item_choice(m->item_choice_data);
 
 			if (key)
 				choice_item = menu_item_by_key(m, key);

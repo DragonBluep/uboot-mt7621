@@ -356,6 +356,7 @@ static struct bootmenu_data *bootmenu_create(int delay)
 	}
 
 	/* Add U-Boot console entry at the end */
+	/*
 	if (i <= MAX_COUNT - 1) {
 		entry = malloc(sizeof(struct bootmenu_entry));
 		if (!entry)
@@ -387,7 +388,7 @@ static struct bootmenu_data *bootmenu_create(int delay)
 
 		iter = entry;
 		++i;
-	}
+	}*/
 
 	menu->count = i;
 	return menu;

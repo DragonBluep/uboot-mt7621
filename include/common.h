@@ -568,6 +568,34 @@ int cpu_release(u32 nr, int argc, char * const argv[]);
 
 #define ROUND(a,b)		(((a) + (b) - 1) & ~((b) - 1))
 
+#define REG8(reg)              (*((volatile unsigned char *)(reg)))
+#define REGWRITE8(reg,value)   (*(volatile unsigned char *)(reg) = (volatile unsigned char)(value))
+#define REG32(reg)             (*((volatile unsigned int *)(reg)))
+#define REGWRITE32(reg, value) (*(volatile unsigned int *)(reg) = (volatile unsigned int)(value))
+
+#define reg_read8(reg)          (*((volatile unsigned char *)(reg)))
+#define reg_write8(reg,value)   (*(volatile unsigned char *)(reg) = (volatile unsigned char)(value))
+#define reg_read32(reg)         (*((volatile unsigned int *)(reg)))
+#define reg_write32(reg, value) (*(volatile unsigned int *)(reg) = (volatile unsigned int)(value))
+
+#define RALINK_GPIOMODE_UART1		0x02
+#define RALINK_GPIOMODE_I2C		0x04
+#define RALINK_GPIOMODE_UART3		0x08
+#define RALINK_GPIOMODE_UART2		0x20
+#define RALINK_GPIOMODE_JTAG		0x80
+#define RALINK_GPIOMODE_WDT		0x100
+#define RALINK_GPIOMODE_PERST		0x400
+#define RALINK_GPIOMODE_MDIO		0x1000
+#define RALINK_GPIOMODE_GE1		0x4000
+#define RALINK_GPIOMODE_GE2		0x8000
+#define RALINK_GPIOMODE_SPI		0x10000
+#define RALINK_GPIOMODE_SDXC		0x40000
+#define RALINK_GPIOMODE_ESWINT		0x100000
+
+#define RALINK_REG_GPIOMODE 0xBE000060
+#define RALINK_GPIOMODE_DFT		(RALINK_GPIOMODE_UART2 | RALINK_GPIOMODE_UART3 | RALINK_GPIOMODE_WDT | RALINK_GPIOMODE_I2C | RALINK_GPIOMODE_JTAG) 
+//�����ϰ���
+
 /*
  * check_member() - Check the offset of a structure member
  *

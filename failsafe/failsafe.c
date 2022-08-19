@@ -54,6 +54,11 @@ static void index_handler(enum httpd_uri_handler_status status,
 	if (status == HTTP_CB_NEW)
 		output_plain_file(response, "index.html");
 }
+	struct flashing_status {
+		char buf[4096];
+		int ret;
+		int body_sent;
+	};
 
 static void upload_handler(enum httpd_uri_handler_status status,
 	struct httpd_request *request,
@@ -64,6 +69,8 @@ static void upload_handler(enum httpd_uri_handler_status status,
 	struct httpd_form_value *fw;
 	const struct fs_desc *file;
 	int i;
+	struct flashing_status *st;
+	u32 size;
 
 	static char hexchars[] = "0123456789abcdef";
 
@@ -77,7 +84,35 @@ static void upload_handler(enum httpd_uri_handler_status status,
 		}
 
 		/* TODO: add firmware validation here if necessary */
+		st = calloc(1, sizeof(*st));
+		if (!st) {
+			response->info.code = 500;
+			return;
+		}
+		upload_data_id = upload_id;
+		upload_data = fw->data;
+		upload_size = fw->size;
 
+		st->ret = -1;
+
+		response->session_data = st;
+
+		response->status = HTTP_RESP_CUSTOM;
+
+		response->info.http_1_0 = 1;
+		response->info.content_length = -1;
+		response->info.connection_close = 1;
+		response->info.content_type = "text/html";
+		response->info.code = 200;
+
+		size = http_make_response_header(&response->info,
+			st->buf, sizeof(st->buf));
+
+		response->data = st->buf;
+		response->size = size;
+
+		return;
+#if 0
 		if (output_plain_file(response, "upload.html")) {
 			response->info.code = 500;
 			return;
@@ -113,16 +148,69 @@ static void upload_handler(enum httpd_uri_handler_status status,
 			}
 
 			response->data = buff;
-		}
 
+		}
 		upload_data_id = upload_id;
 		upload_data = fw->data;
 		upload_size = fw->size;
 
 		return;
+#endif
+	}
+	if (status == HTTP_CB_RESPONDING) {
+		st = response->session_data;
+		
+		if (st->body_sent) {
+			response->status = HTTP_RESP_NONE;
+			return;
+		}
+
+		if (upload_data_id == upload_id)
+			st->ret = write_firmware_failsafe((size_t) upload_data,
+				upload_size);
+
+		/* invalidate upload identifier */
+		upload_data_id = rand();
+
+		if (!st->ret)
+			file = fs_find_file("success.html");
+		else
+			file = fs_find_file("fail.html");
+
+		if (!file) {
+			if (!st->ret)
+				response->data = "Upgrade completed!";
+			else
+				response->data = "Upgrade failed!";
+			response->size = strlen(response->data);
+			return;
+		}
+
+		response->data = file->data;
+		response->size = file->size;
+
+		st->body_sent = 1;
+
+		return;
 	}
 
 	if (status == HTTP_CB_CLOSED) {
+		st = response->session_data;
+
+		upgrade_success = !st->ret;
+
+		free(response->session_data);
+		
+		if (upgrade_success)
+			tcp_close_all_conn();
+
+		run_command("mtkautoboot", 0);
+
+		return;
+	}
+#if 0
+	if (status == HTTP_CB_CLOSED) {
+		
 		file = fs_find_file("upload.html");
 
 		if (file) {
@@ -130,6 +218,8 @@ static void upload_handler(enum httpd_uri_handler_status status,
 				free((void *) response->data);
 		}
 	}
+#endif
+
 }
 
 static void flashing_handler(enum httpd_uri_handler_status status,
@@ -140,11 +230,6 @@ static void flashing_handler(enum httpd_uri_handler_status status,
 		output_plain_file(response, "flashing.html");
 }
 
-struct flashing_status {
-	char buf[4096];
-	int ret;
-	int body_sent;
-};
 
 static void result_handler(enum httpd_uri_handler_status status,
 	struct httpd_request *request,

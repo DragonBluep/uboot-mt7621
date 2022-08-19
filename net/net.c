@@ -560,6 +560,7 @@ restart:
 #ifdef CONFIG_USB_KEYBOARD
 	net_busy_flag = 1;
 #endif
+	unsigned int ui_num = 0;
 
 	/*
 	 *	Main packet reception loop.  Loop receiving packets until
@@ -567,6 +568,20 @@ restart:
 	 */
 	for (;;) {
 		WATCHDOG_RESET();
+		ui_num++;
+		if(750000 == ui_num)
+		{
+			run_command("gpio clear 14", 0);
+		}
+
+		
+		if(1500000 == ui_num)
+		{
+			run_command("gpio set 14", 0);
+
+			ui_num = 0;
+		}
+
 #ifdef CONFIG_SHOW_ACTIVITY
 		show_activity(1);
 #endif

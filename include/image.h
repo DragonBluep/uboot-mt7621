@@ -1027,10 +1027,12 @@ int fit_add_verification_data(const char *keydir, void *keydest, void *fit,
 			      const char *engine_id, const char *cmdname);
 
 int fit_image_verify_with_data(const void *fit, int image_noffset,
-			       const void *data, size_t size);
+			       const void *data, size_t size, char* pc_hash , int pc_hash_len);
 int fit_image_verify(const void *fit, int noffset);
+int fit_image_verify_finish(const void *fit, int noffset, char* pc_hash , int pc_hash_len);
 int fit_config_verify(const void *fit, int conf_noffset);
 int fit_all_image_verify(const void *fit);
+int fit_all_image_verify_finish(const void *fit, char* pc_hash , int pc_hash_len);
 int fit_image_check_os(const void *fit, int noffset, uint8_t os);
 int fit_image_check_arch(const void *fit, int noffset, uint8_t arch);
 int fit_image_check_type(const void *fit, int noffset, uint8_t type);

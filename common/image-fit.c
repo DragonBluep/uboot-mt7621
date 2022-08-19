@@ -1154,7 +1154,7 @@ int calculate_hash(const void *data, int data_len, const char *algo,
 }
 
 static int fit_image_check_hash(const void *fit, int noffset, const void *data,
-				size_t size, char **err_msgp)
+				size_t size, char **err_msgp, char* pc_hash , int pc_hash_len)
 {
 	uint8_t value[FIT_MAX_HASH_LEN];
 	int value_len;
@@ -1197,12 +1197,17 @@ static int fit_image_check_hash(const void *fit, int noffset, const void *data,
 		*err_msgp = "Bad hash value";
 		return -1;
 	}
+	
+	if( pc_hash != NULL && !strcmp(algo , "crc32" ))
+	{
+		memcpy( pc_hash , fit_value , pc_hash_len > value_len ? value_len : pc_hash_len );
+	}
 
 	return 0;
 }
 
 int fit_image_verify_with_data(const void *fit, int image_noffset,
-			       const void *data, size_t size)
+			       const void *data, size_t size, char* pc_hash , int pc_hash_len)
 {
 	int		noffset = 0;
 	char		*err_msg = "";
@@ -1229,9 +1234,9 @@ int fit_image_verify_with_data(const void *fit, int image_noffset,
 		if (!strncmp(name, FIT_HASH_NODENAME,
 			     strlen(FIT_HASH_NODENAME))) {
 			if (fit_image_check_hash(fit, noffset, data, size,
-						 &err_msg))
+						 &err_msg, pc_hash , pc_hash_len))
 				goto error;
-			puts("+ ");
+			puts("+  ");
 		} else if (IMAGE_ENABLE_VERIFY && verify_all &&
 				!strncmp(name, FIT_SIG_NODENAME,
 					strlen(FIT_SIG_NODENAME))) {
@@ -1245,9 +1250,9 @@ int fit_image_verify_with_data(const void *fit, int image_noffset,
 			 * fit_image_verify_required_sigs() above.
 			 */
 			if (ret)
-				puts("- ");
+				puts("-  ");
 			else
-				puts("+ ");
+				puts("+  ");
 		}
 	}
 
@@ -1278,7 +1283,11 @@ error:
  *     1, if all hashes are valid
  *     0, otherwise (or on error)
  */
-int fit_image_verify(const void *fit, int image_noffset)
+ int fit_image_verify(const void *fit, int image_noffset)
+{
+	return fit_image_verify_finish(fit , image_noffset , NULL , 0 );
+}
+int fit_image_verify_finish(const void *fit, int image_noffset, char* pc_hash , int pc_hash_len)
 {
 	const void	*data;
 	size_t		size;
@@ -1294,7 +1303,7 @@ int fit_image_verify(const void *fit, int image_noffset)
 		return 0;
 	}
 
-	return fit_image_verify_with_data(fit, image_noffset, data, size);
+	return fit_image_verify_with_data(fit, image_noffset, data, size, pc_hash , pc_hash_len);
 }
 
 /**
@@ -1310,10 +1319,16 @@ int fit_image_verify(const void *fit, int image_noffset)
  */
 int fit_all_image_verify(const void *fit)
 {
+	return fit_all_image_verify_finish(fit , NULL , 0 );
+}
+int fit_all_image_verify_finish(const void *fit, char* pc_hash , int pc_hash_len)
+{
 	int images_noffset;
 	int noffset;
 	int ndepth;
 	int count;
+	char cName[32]  = {0}; 
+	char *pcIsKernel = NULL;
 
 	/* Find images parent node offset */
 	images_noffset = fdt_path_offset(fit, FIT_IMAGES_PATH);
@@ -1335,12 +1350,23 @@ int fit_all_image_verify(const void *fit)
 			 * Direct child node of the images parent node,
 			 * i.e. component image node.
 			 */
-			printf("   Hash(es) for Image %u (%s): ", count,
-			       fit_get_name(fit, noffset, NULL));
+			memset(cName , 0 , sizeof(cName));
+			snprintf(cName , sizeof(cName) , "%s" , fit_get_name(fit, noffset, NULL));
+			printf("   Hash(es) for Image %u (%s): ", count,cName );
 			count++;
 
-			if (!fit_image_verify(fit, noffset))
-				return 0;
+			pcIsKernel = strstr(cName , "kernel");
+			if(pcIsKernel == NULL )
+			{
+				if (!fit_image_verify_finish(fit, noffset, NULL , 0 ))
+					return 0;
+			}
+			else
+			{
+				if (!fit_image_verify_finish(fit, noffset, pc_hash , pc_hash_len))
+					return 0;
+			}
+			
 			printf("\n");
 		}
 	}
@@ -1710,7 +1736,7 @@ static int fit_image_select(const void *fit, int rd_noffset, int verify)
 
 	if (verify) {
 		puts("   Verifying Hash Integrity ... ");
-		if (!fit_image_verify(fit, rd_noffset)) {
+		if (!fit_image_verify_finish(fit, rd_noffset,NULL,0)) {
 			puts("Bad Data Hash\n");
 			return -EACCES;
 		}

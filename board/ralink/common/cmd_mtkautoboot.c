@@ -23,6 +23,9 @@ struct mtk_bootmenu_entry {
 	}, {
 		.desc = "Upgrade bootloader (advanced mode)",
 		.cmd = "mtkupgrade bladv"
+	}, {
+		.desc = "System Enter UBoot to Update Img",
+		.cmd = "mtkupgrade fwre"
 	},{
 		.desc = "Load image",
 		.cmd = "mtkload"

@@ -248,7 +248,7 @@ static int spl_load_fit_image(struct spl_load_info *info, ulong sector,
 	printf("## Checking hash(es) for Image %s ... ",
 	       fit_get_name(fit, node, NULL));
 	if (!fit_image_verify_with_data(fit, node,
-					 src, length))
+					 src, length,NULL,0))
 		return -EPERM;
 	puts("OK\n");
 #endif

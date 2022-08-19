@@ -57,7 +57,6 @@ static void gpio_get_description(struct udevice *dev, const char *bank_name,
 	if (ret)
 		goto err;
 
-	printf("%s\n", buf);
 	return;
 err:
 	printf("Error %d\n", ret);
@@ -213,11 +212,11 @@ static int do_gpio(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		}
 		gpio_direction_output(gpio, value);
 	}
-	printf("gpio: pin %s (gpio %i) value is ", str_gpio, gpio);
+	//printf("gpio: pin %s (gpio %i) value is ", str_gpio, gpio);
 	if (IS_ERR_VALUE(value))
 		printf("unknown (ret=%d)\n", value);
-	else
-		printf("%d\n", value);
+	//else
+	//	printf("%d\n", value);
 	if (sub_cmd != GPIO_INPUT && !IS_ERR_VALUE(value)) {
 		int nval = gpio_get_value(gpio);
 
