@@ -538,6 +538,9 @@ extern int		net_restart_wrap;	/* Tried all network devices */
 enum proto_t {
 	BOOTP, RARP, ARP, TFTPGET, DHCP, PING, DNS, NFS, CDP, NETCONS, SNTP,
 	TFTPSRV, TFTPPUT, LINKLOCAL, FASTBOOT, WOL, TCP
+#if defined(CONFIG_TFTPD)
+        , TFTPD
+#endif
 };
 
 extern char	net_boot_file_name[1024];/* Boot File name */
@@ -869,6 +872,21 @@ unsigned int random_port(void);
  * @return - 0 on success, other value on failure
  */
 int update_tftp(ulong addr, char *interface, char *devstring);
+
+#if defined(CONFIG_ASUS_PRODUCT)
+/* copy IP */
+static inline void NetCopy_LEIP(void *to, void *from)
+{
+        uint32_t ip, le_ip;
+
+        /* from may point to address which is not aligned to 4-bytes boundary. */
+        memcpy(&le_ip, from, sizeof(struct in_addr));
+        ip = __le32_to_cpu(le_ip);
+        *(uint32_t*)to = __cpu_to_be32(ip);
+}
+#endif
+
+
 
 /**********************************************************************/
 

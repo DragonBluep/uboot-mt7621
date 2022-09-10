@@ -39,9 +39,15 @@ static int do_mtkboardboot(cmd_tbl_t *cmdtp, int flag, int argc,
 #else
 	run_command("nmbm nmbm0 boot firmware", 0);
 
+#if defined(CONFIG_ASUS_PRODUCT)
+	sprintf(cmd, "nmbm nmbm0 boot 0x%08x 0x%08x",
+		CONFIG_SYS_SDRAM_BASE + SZ_32M,
+		CONFIG_DEFAULT_NAND_KERNEL_OFFSET+0x40);
+#else
 	sprintf(cmd, "nmbm nmbm0 boot 0x%08x 0x%08x",
 		CONFIG_SYS_SDRAM_BASE + SZ_32M,
 		CONFIG_DEFAULT_NAND_KERNEL_OFFSET);
+#endif
 	run_command(cmd, 0);
 #endif
 

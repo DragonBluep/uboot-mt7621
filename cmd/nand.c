@@ -371,7 +371,11 @@ static void adjust_size_for_badblocks(loff_t *size, loff_t offset, int dev)
 	}
 }
 
+#if defined(CONFIG_ASUS_PRODUCT)
+int do_nand(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+#else   // CONFIG_ASUS_PRODUCT
 static int do_nand(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+#endif
 {
 	int i, ret = 0;
 	ulong addr;

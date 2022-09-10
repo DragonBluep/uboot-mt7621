@@ -122,5 +122,7 @@ obj-$(CONFIG_$(SPL_)LOG) += log.o
 obj-$(CONFIG_$(SPL_)LOG_CONSOLE) += log_console.o
 obj-y += s_record.o
 obj-y += xyzModem.o
+obj-$(CONFIG_ASUS_PRODUCT) += replace.o
+obj-$(CONFIG_ASUS_PRODUCT) += factory.o
 
 obj-$(CONFIG_AVB_VERIFY) += avb_verify.o

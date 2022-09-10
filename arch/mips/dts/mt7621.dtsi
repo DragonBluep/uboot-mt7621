@@ -68,14 +68,14 @@
 				};
 
 				gpio {
-					groups = "i2c", "uart2", "uart3", "pcie";
+					groups = "i2c", "uart2", "uart3", "pcie", "jtag";
 					function = "gpio";
 				};
 
-				jtag {
-					groups = "jtag";
-					function = "jtag";
-				};
+				//jtag {
+				//	groups = "jtag";
+				//	function = "jtag";
+				//};
 
 				wdt {
 					groups = "wdt";

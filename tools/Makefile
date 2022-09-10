@@ -213,6 +213,9 @@ HOSTCFLAGS_md5.o := -pedantic
 HOSTCFLAGS_sha1.o := -pedantic
 HOSTCFLAGS_sha256.o := -pedantic
 
+hostprogs-$(CONFIG_ASUS_PRODUCT) += addmg
+addmg-objs := addmg.o
+
 quiet_cmd_wrap = WRAP    $@
 cmd_wrap = echo "\#include <../$(patsubst $(obj)/%,%,$@)>" >$@
 

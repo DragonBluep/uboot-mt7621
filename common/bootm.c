@@ -29,6 +29,85 @@
 #include <bootm.h>
 #include <image.h>
 
+
+#if defined(CONFIG_ASUS_PRODUCT)
+static image_header_t *image_get_kernel(ulong img_addr, int verify);
+int check_trx(ulong addr);
+int check_trx(ulong addr)
+{
+#define TRX_MAGIC                       0x56190527      /* Image Magic Number */
+#define NVRAM_MAGIC                     0x48534C46      /* 'FLSH' */
+#define NVRAM_MAGIC_MAC0                0x3043414D      /* 'MAC0' Added by PaN */
+#define NVRAM_MAGIC_MAC1                0x3143414D      /* 'MAC1' Added by PaN */
+#define NVRAM_MAGIC_RDOM                0x4D4F4452      /* 'RDOM' Added by PaN */
+#define NVRAM_MAGIC_ASUS                0x53555341      /* 'ASUS' Added by PaN */
+#define NVRAM_MAGIC_SCODE               0x45444F4353    /* 'SCODE' Added by Yen */
+
+    void *ptr = (void *)addr;
+    image_header_t *hdr = NULL;
+
+    if (addr <= 0)
+        return 0;
+
+    // Check TRX_MAGIC
+    if (*(ulong *)(ptr) != TRX_MAGIC)
+    {
+        puts("Bad TRX magic.\n");
+        return -1;
+    }
+
+    // get firmeare header & verify checksum
+    hdr = image_get_kernel(addr, 1);
+    if (!hdr)
+    {
+        puts("Bad TRX firmeare.\n");
+        return -2;
+    }
+
+    return (int)(sizeof(image_header_t) + htonl(hdr->ih_size));
+}
+
+int do_check_trx(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+    ulong addr = 0;
+    int arg, size = 0;
+    char s[128];
+
+    if (argc < 2) {
+        addr = (ulong)load_addr;
+    }
+    else {
+        for (arg=1; arg<argc; ++arg)
+            addr = simple_strtoul(argv[arg], NULL, 16);
+    }
+
+//Checking Image at 003e0000 ...
+    memset(s, 0, sizeof(s));
+    snprintf(s, sizeof(s), "## Checking TRX firmware at 0x%lx ...\n", addr);
+    puts(s);
+
+    size = check_trx(addr);
+    memset(s, 0, sizeof(s));
+    snprintf(s, sizeof(s), "Verifying TRX firmware ... %s\n", (size>0)?"OK":"NG");
+    puts(s);
+
+    if (size > 0) {
+        memset(s, 0, sizeof(s));
+        snprintf(s, sizeof(s), "Firmware size ... %d(%08x)\n", size, size);
+        puts(s);
+    }
+
+    return 0;
+}
+
+U_BOOT_CMD(
+    check_trx, CONFIG_SYS_MAXARGS, 1, do_check_trx,
+    "Check ASUS TRX firmware.",
+    ""
+);
+
+#endif  // CONFIG_ASUS_PRODUCT
+
 #ifndef CONFIG_SYS_BOOTM_LEN
 /* use 8MByte as default max gunzip size */
 #define CONFIG_SYS_BOOTM_LEN	0x800000
@@ -115,6 +194,9 @@ static int bootm_find_os(cmd_tbl_t *cmdtp, int flag, int argc,
 #endif
 #if IMAGE_ENABLE_FIT
 	case IMAGE_FORMAT_FIT:
+#if defined(CONFIG_ASUS_PRODUCT)
+	case IMAGE_FORMAT_LEGACYFIT:
+#endif  // CONFIG_ASUS_PRODUCT
 		if (fit_image_get_type(images.fit_hdr_os,
 				       images.fit_noffset_os,
 				       &images.os.type)) {
@@ -899,6 +981,22 @@ static const void *boot_get_kernel(cmd_tbl_t *cmdtp, int flag, int argc,
 		images->fit_uname_cfg = fit_uname_config;
 		images->fit_noffset_os = os_noffset;
 		break;
+#if defined(CONFIG_ASUS_PRODUCT)
+	case IMAGE_FORMAT_LEGACYFIT:
+		os_noffset = fit_image_load(images,	(img_addr+0x40),
+				&fit_uname_kernel, &fit_uname_config,
+				IH_ARCH_DEFAULT, IH_TYPE_KERNEL,
+				BOOTSTAGE_ID_FIT_KERNEL_START,
+				FIT_LOAD_IGNORED, os_data, os_len);
+		if (os_noffset < 0)
+			return NULL;
+
+		images->fit_hdr_os = map_sysmem(img_addr+0x40, 0);
+		images->fit_uname_os = fit_uname_kernel;
+		images->fit_uname_cfg = fit_uname_config;
+		images->fit_noffset_os = os_noffset;
+		break;
+#endif  // CONFIG_ASUS_PRODUCT
 #endif
 #ifdef CONFIG_ANDROID_BOOT_IMAGE
 	case IMAGE_FORMAT_ANDROID:

@@ -296,6 +296,24 @@ static int image_info(ulong addr)
 
 		return 0;
 #endif
+#if defined(CONFIG_ASUS_PRODUCT)
+    case IMAGE_FORMAT_LEGACYFIT:
+        puts("  LEGACYFIT image found\n");
+
+        if (!fit_check_format(hdr)) {
+            puts("Bad FIT image format!\n");
+            return 1;
+        }
+
+        fit_print_contents(hdr);
+
+        if (!fit_all_image_verify(hdr)) {
+            puts("Bad hash in FIT image!\n");
+            return 1;
+        }
+
+        return 0;
+#endif  // CONFIG_ASUS_PRODUCT
 	default:
 		puts("Unknown image format!\n");
 		break;

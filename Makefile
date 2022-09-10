@@ -247,6 +247,11 @@ endif
 KCONFIG_CONFIG	?= .config
 export KCONFIG_CONFIG
 
+### ASUS_PRODUCT ###
+CROSS_COMPILE_PATH = /opt/buildroot-gcc492_mips_glibc/usr/bin
+CROSS_COMPILE = $(CROSS_COMPILE_PATH)/mipsel-linux-
+### ASUS_PRODUCT ###
+
 # SHELL used by kbuild
 CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	  else if [ -x /bin/bash ]; then echo /bin/bash; \
@@ -864,7 +869,9 @@ ALL-y += init_sp_bss_offset_check
 endif
 
 # Build unified image for MediaTek MT7621 platform
-ALL-$(CONFIG_MACH_MT7621) += u-boot-mt7621.bin
+ALL-$(CONFIG_MACH_MT7621) += u-boot-mt7621.bin 
+
+ALL-$(CONFIG_TRX) += u-boot.trx
 
 LDFLAGS_u-boot += $(LDFLAGS_FINAL)
 
@@ -1132,6 +1139,10 @@ u-boot.sha1:	u-boot.bin
 
 u-boot.dis:	u-boot
 		$(OBJDUMP) -d $< > $@
+
+u-boot.trx: u-boot-mt7621.bin
+	cp -f $< $@
+	tools/addmg -f $(shell printf "%d" $(CONFIG_MAX_TRX_IMAGE_SIZE)) -d $@
 
 ifneq ($(CONFIG_SPL_PAYLOAD),)
 SPL_PAYLOAD := $(CONFIG_SPL_PAYLOAD:"%"=%)

@@ -52,6 +52,43 @@ DECLARE_GLOBAL_DATA_PTR = (gd_t *)(CONFIG_SYS_INIT_GD_ADDR);
 DECLARE_GLOBAL_DATA_PTR;
 #endif
 
+#if defined(CONFIG_ASUS_PRODUCT)
+const char *model =
+#if defined(CONFIG_RTAX53U)
+	"RT-AX53U";
+#elif defined(CONFIG_4GAX56)
+	"4G-AX56";
+#elif defined(CONFIG_RTAX54)
+	"RT-AX54";
+#elif defined(CONFIG_XD4S)
+	"XD4S";
+#else
+    "ASUS PRODUCT";
+#endif
+
+const char *blver =
+#if defined(CONFIG_RTAX53U)
+	"1001";
+#elif defined(CONFIG_4GAX56)
+	"1003";
+#elif defined(CONFIG_RTAX54)
+	"1001";
+#elif defined(CONFIG_XD4S)
+	"1002";
+#else
+#error Define bootload version
+#endif
+
+const char *bl_stage =
+#if defined(UBOOT_STAGE1)
+    " stage1";
+#elif defined(UBOOT_STAGE2)
+    " stage2";
+#else
+    "";
+#endif
+#endif  // CONFIG_ASUS_PRODUCT
+
 /*
  * TODO(sjg@chromium.org): IMO this code should be
  * refactored to a single function, something like:
@@ -121,6 +158,10 @@ static int init_baud_rate(void)
 
 static int display_text_info(void)
 {
+#if defined(CONFIG_ASUS_PRODUCT)
+    printf("\n\n%s bootloader%s version: %c.%c.%c.%c\n\n",
+            model, bl_stage, blver[0], blver[1], blver[2], blver[3]);
+#endif  // CONFIG_ASUS_PRODUCT
 #if !defined(CONFIG_SANDBOX) && !defined(CONFIG_EFI_APP)
 	ulong bss_start, bss_end, text_base;
 

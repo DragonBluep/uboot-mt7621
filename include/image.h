@@ -301,6 +301,29 @@ enum {
 
 #define IH_MAGIC	0x27051956	/* Image Magic Number		*/
 #define IH_NMLEN		32	/* Image Name Length		*/
+#if defined(CONFIG_ASUS_PRODUCT)
+/* If hw[i].kernel == ROOTFS_OFFSET_MAGIC,
+ * rootfilesystem offset (uImage header size + kernel size)
+ * can be calculated by following equation:
+ * (hw[i].minor << 16) | (hw[i+1].major << 8) | (hw[i+1].minor)
+ */
+#define ROOTFS_OFFSET_MAGIC	0xA9	/* Occupy two version_t		*/
+
+#define MAX_STRING 12
+#define MAX_VER 4
+
+typedef struct {
+       uint8_t major;
+       uint8_t minor;
+} version_t;
+
+typedef struct {
+       version_t kernel;
+       version_t fs;
+       char      productid[MAX_STRING];
+       version_t hw[MAX_VER*2];
+} TAIL;
+#endif	// CONFIG_ASUS_PRODUCT
 
 /* Reused from common.h */
 #define ROUND(a, b)		(((a) + (b) - 1) & ~((b) - 1))
@@ -321,7 +344,14 @@ typedef struct image_header {
 	uint8_t		ih_arch;	/* CPU architecture		*/
 	uint8_t		ih_type;	/* Image Type			*/
 	uint8_t		ih_comp;	/* Compression Type		*/
+#if defined(CONFIG_ASUS_PRODUCT)
+	union {
 	uint8_t		ih_name[IH_NMLEN];	/* Image Name		*/
+		TAIL		tail;		/* ASUS firmware infomation	*/
+	} u;
+#else
+	uint8_t		ih_name[IH_NMLEN];	/* Image Name		*/
+#endif
 } image_header_t;
 
 typedef struct image_info {
@@ -559,7 +589,9 @@ int boot_get_setup(bootm_headers_t *images, uint8_t arch, ulong *setup_start,
 #endif
 #define IMAGE_FORMAT_FIT	0x02	/* new, libfdt based format */
 #define IMAGE_FORMAT_ANDROID	0x03	/* Android boot image */
-
+#if defined(CONFIG_ASUS_PRODUCT)
+#define IMAGE_FORMAT_LEGACYFIT	0x04
+#endif	// CONFIG_ASUS_PRODUCT
 ulong genimg_get_kernel_addr_fit(char * const img_addr,
 			         const char **fit_uname_config,
 			         const char **fit_uname_kernel);
@@ -738,7 +770,11 @@ image_get_hdr_b(comp)		/* image_get_comp */
 
 static inline char *image_get_name(const image_header_t *hdr)
 {
+#if defined(CONFIG_ASUS_PRODUCT)
+	return (char *)hdr->u.ih_name;
+#else
 	return (char *)hdr->ih_name;
+#endif
 }
 
 static inline uint32_t image_get_data_size(const image_header_t *hdr)

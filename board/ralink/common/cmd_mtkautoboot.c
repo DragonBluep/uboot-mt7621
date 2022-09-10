@@ -13,7 +13,11 @@ struct mtk_bootmenu_entry {
 } bootmenu_entries[] = {
 	{
 		.desc = "Startup system (Default)",
+#if defined(CONFIG_ASUS_PRODUCT)
+		.cmd = "tftpd"
+#else
 		.cmd = "mtkboardboot"
+#endif
 	}, {
 		.desc = "Upgrade firmware",
 		.cmd = "mtkupgrade fw"
@@ -45,7 +49,10 @@ static int do_mtkautoboot(cmd_tbl_t *cmdtp, int flag, int argc,
 			 bootmenu_entries[i].desc, bootmenu_entries[i].cmd);
 		env_set(key, val);
 	}
-
+#if defined(CONFIG_RTAX53U) || defined(CONFIG_4GAX56) || defined(CONFIG_RTAX54) || defined(CONFIG_XD4S)
+	env_set("mtdids", CONFIG_MTDIDS_DEFAULT);
+	env_set("mtdparts", CONFIG_MTDPARTS_DEFAULT);
+#endif
 	/*
 	 * Remove possibly existed `next entry` to force bootmenu command to
 	 * stop processing

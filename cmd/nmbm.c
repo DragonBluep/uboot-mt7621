@@ -215,7 +215,12 @@ static int do_nmbm_mtd_boot(cmd_tbl_t *cmdtp, struct mtd_info *mtd,
 	return bootm_maybe_autostart(cmdtp, "nmbm");
 }
 
-static int do_nmbm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+#if defined(CONFIG_ASUS_PRODUCT)
+int
+#else
+static int
+#endif
+do_nmbm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	struct mtd_info *mtd;
 	uint64_t offset, size;

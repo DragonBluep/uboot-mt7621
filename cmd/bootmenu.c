@@ -154,7 +154,10 @@ static void bootmenu_autoboot_loop(struct bootmenu_data *menu,
 	puts(ANSI_CLEAR_LINE);
 
 	if (menu->delay == 0)
+	{
+		GREEN_LEDOFF();
 		*key = KEY_SELECT;
+	}	
 }
 
 static void bootmenu_loop(struct bootmenu_data *menu,

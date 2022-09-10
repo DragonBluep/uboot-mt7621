@@ -9,3 +9,5 @@ endif
 ifndef CONFIG_SPL_BUILD
 obj-y	+= cmd_mtkboardboot.o
 endif
+
+obj-$(CONFIG_ASUS_PRODUCT) += model.o

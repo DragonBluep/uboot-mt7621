@@ -7,20 +7,20 @@ config MT7621_CPU_FREQ
 	default 880
 
 choice
-	prompt "DRAM Frequency"
+	prompt "DRAM speed"
 	default MT7621_DRAM_FREQ_1200
 
 config MT7621_DRAM_FREQ_400
-	bool "400MHz"
+	bool "400MT/s"
 
 config MT7621_DRAM_FREQ_800
-	bool "800MHz"
+	bool "800MT/s"
 
 config MT7621_DRAM_FREQ_1066
-	bool "1066MHz"
+	bool "1066MT/s"
 
 config MT7621_DRAM_FREQ_1200
-	bool "1200MHz"
+	bool "1200MT/s"
 
 endchoice
 
@@ -32,37 +32,18 @@ config MT7621_DRAM_FREQ
 	default "1200" if MT7621_DRAM_FREQ_1200
 	default "1200"
 
-config MT7621_DRAM_FREQ_TUNE
-	int "DRAM speed tune"
-	default 0
-	help
-	  This option is used to tune the DRAM frequency and will only take
-	  effect if the xtal clock is 40MHz.
-	  The final DRAM freq will be: DRAM_FREQ + 80 * DRAM_FREQ_TUNE.
-	  e.g.: if DRAM_FREQ == 1200, DRAM_FREQ_TUNE == 1, final DRAM clock
-	  will be 640MHz, and DRAM speed will be 1280MT/s
-
-config MT7621_DRAM_INIT_USER_PARAM_FIRST
-	bool "Use user-prefered DRAM initialization parameters first"
-	default n
-
-choice
-	prompt "Source of DRAM init parameters"
-	default MT7621_DRAM_INIT_USER_PARAM_PREDEFINED
-	depends on MT7621_DRAM_INIT_USER_PARAM_FIRST
-
-config MT7621_DRAM_INIT_USER_PARAM_PREDEFINED
-	bool "Pre-defined"
-
-config MT7621_DRAM_INIT_USER_PARAM_BOARD_PROVIDED
-	bool "Board-provided"
-
-endchoice
-
+#config MT7621_DRAM_FREQ_TUNE
+#	int "DRAM speed tune"
+#	default 0
+#	help
+#	  This option is used to tune the DRAM frequency and will only take
+#	  effect if the xtal clock is 40MHz.
+#	  The final DRAM freq will be: DRAM_FREQ + 80 * DRAM_FREQ_TUNE.
+#	  e.g.: if DRAM_FREQ == 1200, DRAM_FREQ_TUNE == 1, final DRAM clock
+#	  will be 640MHz, and DRAM speed will be 1280MT/s
 choice
 	prompt "Prefered DDR2 init parameters"
 	default MT7621_DRAM_DDR2_1024M
-	depends on MT7621_DRAM_INIT_USER_PARAM_PREDEFINED
 
 config MT7621_DRAM_DDR2_512M
 	bool "64MB"
@@ -84,7 +65,6 @@ endchoice
 choice
 	prompt "Prefered DDR3 init parameters"
 	default MT7621_DRAM_DDR3_2048M
-	depends on MT7621_DRAM_INIT_USER_PARAM_PREDEFINED
 
 config MT7621_DRAM_DDR3_1024M
 	bool "128MB"
@@ -99,16 +79,6 @@ config MT7621_DRAM_DDR3_4096M
 	bool "512MB"
 
 endchoice
-
-config MT7621_DRAM_INIT_AUTO_PROBE
-	bool "Do auto probing if user-prefered parameters fails"
-	depends on MT7621_DRAM_INIT_USER_PARAM_FIRST
-	default y
-
-config MT7621_RESET_WHEN_DRAMC_FAIL
-	bool "Reset the chip if failed to initialize DRAM"
-	depends on MACH_MT7621
-	default y
 
 config MT7621_DRAMC_DEBUG
 	bool "Enable verbose output during DRAMC initialization"

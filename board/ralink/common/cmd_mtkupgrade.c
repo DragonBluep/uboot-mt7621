@@ -30,7 +30,6 @@
 
 enum file_type {
 	TYPE_BL,
-	TYPE_BL_ADV,
 	TYPE_FW
 };
 
@@ -100,11 +99,14 @@ static int env_update(const char *varname, const char *defval,
 static int load_tftp(size_t addr, uint32_t *data_size, const char *env_name)
 {
 	char file_name[CONFIG_SYS_CBSIZE + 1];
+#if defined(CONFIG_XD4S) 
+	char def_name[CONFIG_SYS_CBSIZE + 1];
+#endif	
 	const char *save_tftp_info;
 	uint32_t size;
 
 	if (env_update("ipaddr", __stringify(CONFIG_IPADDR),
-		       "Input U-Boot's IP address:", NULL, 0))
+		       "Input device IP address:", NULL, 0))
 		return CMD_RET_FAILURE;
 
 	if (env_update("serverip", __stringify(CONFIG_SERVERIP),
@@ -114,9 +116,18 @@ static int load_tftp(size_t addr, uint32_t *data_size, const char *env_name)
 	if (env_update("netmask", __stringify(CONFIG_NETMASK),
 		       "Input IP netmask:", NULL, 0))
 		return CMD_RET_FAILURE;
+#if defined(CONFIG_XD4S) 
+	if(!strcmp(env_name,"bootfile.bootloader"))
+		strcpy(def_name,ASUS_BL);
+	else	
+		strcpy(def_name,ASUS_FW);
 
-	if (env_update(env_name, "", "Input file name:",
+	if (env_update(env_name,def_name, "Input file name:",				
 		       file_name, sizeof(file_name)))
+#else
+	if (env_update(env_name, "", "Input file name:",
+                       file_name, sizeof(file_name)))
+#endif		
 		return CMD_RET_FAILURE;
 
 	printf("\n");
@@ -366,42 +377,6 @@ static int check_mtd_bootloader_size(size_t data_size)
 	return CMD_RET_SUCCESS;
 }
 
-static int prompt_countdown(const char *prompt, int delay)
-{
-	int i;
-	int hit = 0;
-
-	if (delay <= 0)
-		return 0;
-
-	printf("\n%s: %2d ", prompt, delay);
-
-	while (delay > 0) {
-		for (i = 0; i < 100; i++) {
-			if (!tstc()) {
-				mdelay(10);
-				continue;
-			}
-
-			getc();
-			hit = 1;
-			delay = -1;
-
-			break;
-		}
-
-		if (delay < 0)
-			break;
-
-		delay--;
-		printf("\b\b\b%2d ", delay);
-	}
-
-	puts("\n");
-
-	return hit;
-}
-
 static int do_data_verify(void *flashdev, uint64_t offset, size_t len,
 			  const void *buf)
 {
@@ -432,34 +407,26 @@ static int do_data_verify(void *flashdev, uint64_t offset, size_t len,
 
 static int do_write_bootloader(void *flash, size_t stock_stage2_off,
 			       size_t data_addr, uint32_t data_size,
-			       uint32_t stage1_size, int adv)
+			       uint32_t stage1_size)
 {
 	uint32_t erase_size;
 	int ret;
 
 	if (stock_stage2_off && stage1_size) {
-		if (adv) {
-			printf(COLOR_PROMPT "*** Caution: Bootblock upgrading "
-			       "***" COLOR_NORMAL "\n\n");
-			printf("This bootloader contains Bootblock.\n");
-			printf(COLOR_CAUTION "Upgrading Bootblock is very "
-			       "dangerous. Upgrade it only if you know what "
-			       "you are doing!" COLOR_NORMAL "\n");
-			cli_highlight_input("Upgrade Bootblock? (N/y):");
+#if 0
+		printf(COLOR_PROMPT "*** Caution: Bootblock upgrading "
+			"***" COLOR_NORMAL "\n\n");
+		printf("This bootloader contains Bootblock.\n");
+		printf(COLOR_CAUTION "Upgrading Bootblock is very "
+			"dangerous. Upgrade it only if you know what "
+			"you are doing!" COLOR_NORMAL "\n");
 
-			if (!confirm_yesno()) {
-				printf("Only second stage block will be "
-				       "upgraded\n");
-				data_addr += stage1_size;
-				data_size -= stage1_size;
-			} else {
-				printf("Whole bootloader will be upgraded\n");
-				stock_stage2_off = 0;
-			}
-		} else {
-			data_addr += stage1_size;
-			data_size -= stage1_size;
-		}
+		/* Skip upgrading bootblock */
+		data_addr += stage1_size;
+		data_size -= stage1_size;
+#endif
+
+		stock_stage2_off = 0;
 	}
 
 	if (check_mtd_bootloader_size(stock_stage2_off + data_size) !=
@@ -535,11 +502,6 @@ static int do_write_bootloader(void *flash, size_t stock_stage2_off,
 	printf("\n" COLOR_PROMPT "*** Bootloader upgrade completed! ***"
 	       COLOR_NORMAL "\n");
 
-	if (!prompt_countdown("Hit any key to stop reboot", 3)) {
-		printf("\nRebooting ...\n\n");
-		_machine_restart();
-	}
-
 	return CMD_RET_SUCCESS;
 }
 
@@ -568,8 +530,7 @@ static int verify_stage2_integrity(const void *data, uint32_t size)
 	return 0;
 }
 
-static int write_bootloader(void *flash, size_t data_addr, uint32_t data_size,
-			    int adv)
+static int write_bootloader(void *flash, size_t data_addr, uint32_t data_size)
 {
 	size_t stock_stage2_off, stock_stage2_off_min;
 	size_t tmp, stock_block_size, flash_block_size;
@@ -667,15 +628,14 @@ static int write_bootloader(void *flash, size_t data_addr, uint32_t data_size,
 do_write_bl:
 	/* Both stock bootloader and new bootloader are two-stage bootloaders */
 	return do_write_bootloader(flash, stock_stage2_off, data_addr,
-				   data_size, data_stage1_size, adv);
+				   data_size, data_stage1_size);
 
 do_write_bl_single:
 	/* Treat the new bootloader as a single-stage bootloader */
-	return do_write_bootloader(flash, 0, data_addr, data_size, 0, adv);
+	return do_write_bootloader(flash, 0, data_addr, data_size, 0);
 }
 
-static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size,
-			   int no_prompt)
+static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size)
 {
 	uint32_t erase_size;
 	uint64_t part_off, part_size, tmp;
@@ -754,12 +714,6 @@ static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size,
 	}
 #endif
 
-	if (no_prompt)
-		return CMD_RET_SUCCESS;
-
-	if (!prompt_countdown("Hit any key to stop firmware bootup", 3))
-		run_command("mtkboardboot", 0);
-
 	return CMD_RET_SUCCESS;
 }
 
@@ -772,12 +726,12 @@ int write_firmware_failsafe(size_t data_addr, uint32_t data_size)
 	if (!flash)
 		return CMD_RET_FAILURE;
 
-	return _write_firmware(flash, data_addr, data_size, 1);
+	return _write_firmware(flash, data_addr, data_size);
 }
 
 static int write_firmware(void *flash, size_t data_addr, uint32_t data_size)
 {
-	return _write_firmware(flash, data_addr, data_size, 0);
+	return _write_firmware(flash, data_addr, data_size);
 }
 
 static int write_data(enum file_type ft, size_t addr, uint32_t data_size)
@@ -791,9 +745,7 @@ static int write_data(enum file_type ft, size_t addr, uint32_t data_size)
 
 	switch (ft) {
 	case TYPE_BL:
-	case TYPE_BL_ADV:
-		if (write_bootloader(flash, addr, data_size,
-				     (ft == TYPE_BL_ADV)))
+		if (write_bootloader(flash, addr, data_size))
 			return CMD_RET_FAILURE;
 
 		break;
@@ -818,10 +770,6 @@ struct upgrade_part {
 	{
 		.id = "bl",
 		.name = "Bootloader"
-	},
-	{
-		.id = "bladv",
-		.name = "Bootloader (Advanced)"
 	},
 	{
 		.id = "fw",
@@ -902,10 +850,6 @@ static int do_mtkupgrade(cmd_tbl_t *cmdtp, int flag, int argc,
 		ft = TYPE_BL;
 		ft_name = "Bootloader";
 		env_name = "bootfile.bootloader";
-	} else if (!strcasecmp(part, "bladv")) {
-		ft = TYPE_BL_ADV;
-		ft_name = "Bootloader";
-		env_name = "bootfile.bootloader";
 	} else if (!strcasecmp(part, "fw")) {
 		ft = TYPE_FW;
 		ft_name = "Firmware";
@@ -955,7 +899,6 @@ U_BOOT_CMD(mtkupgrade, 2, 0, do_mtkupgrade,
 	"mtkupgrade [<type>]\n"
 	"type    - upgrade file type\n"
 	"          bl      - Bootloader\n"
-	"          bladv   - Bootloader (Advanced)\n"
 	"          fw      - Firmware\n"
 );
 

@@ -17,8 +17,29 @@
 #include <flash.h>
 #endif
 
+#ifdef CONFIG_ASUS_PRODUCT
+#include <replace.h>
+#include <linux/sizes.h>
+extern const char *blver;
+extern int check_trx(ulong);
+extern int do_nmbm(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]);
+extern unsigned long DETECT(void);
+extern unsigned long DETECT_WPS(void);
+extern void LEDON(void);
+extern void LEDOFF(void);
+extern void PWR_LEDON(void);
+extern int ra_flash_init_layout(void);
+extern void GREEN_LEDON(void);
+extern void GREEN_LEDOFF(void);
+extern void RESCUE_LED(void);
+#endif  // CONFIG_ASUS_PRODUCT
+
 /* Well known TFTP port # */
 #define WELL_KNOWN_PORT	69
+#ifdef CONFIG_ASUS_PRODUCT
+#define TIMEOUT 2000UL
+#define TIMEOUT_COUNT	25
+#else
 /* Millisecs to timeout for lost pkt */
 #define TIMEOUT		5000UL
 #ifndef	CONFIG_NET_RETRY_COUNT
@@ -26,6 +47,7 @@
 # define TIMEOUT_COUNT	10
 #else
 # define TIMEOUT_COUNT  (CONFIG_NET_RETRY_COUNT * 2)
+#endif
 #endif
 /* Number of "loading" hashes per line (for checking the image size) */
 #define HASHES_PER_LINE	65
@@ -103,6 +125,14 @@ static int	tftp_put_final_block_sent;
 #define STATE_OACK	5
 #define STATE_RECV_WRQ	6
 #define STATE_SEND_WRQ	7
+
+#ifdef CONFIG_ASUS_PRODUCT
+uchar asuslink[] = "ASUSSPACELINK";
+uchar maclink[] = "snxxxxxxxxxxx";
+int TftpStarted = 0;
+struct in_addr TempServerIP;
+uint16_t RescueAckFlag = 0;
+#endif	// CONFIG_ASUS_PRODUCT
 
 /* default TFTP block size */
 #define TFTP_BLOCK_SIZE		512
@@ -239,8 +269,459 @@ static int load_block(unsigned block, uchar *dst, unsigned len)
 }
 #endif
 
+#ifdef CONFIG_ASUS_PRODUCT
+void tftp_send(void);
+#else	// CONFIG_ASUS_PRODUCT
 static void tftp_send(void);
+#endif
 static void tftp_timeout_handler(void);
+
+#if defined(CONFIG_ASUS_PRODUCT)
+void set_ver(void)
+{
+    int rc;
+
+    rc = replace(BOOTLOADER_VER_OFFSET, (unsigned char*)blver, 4);
+
+    if (rc)
+        puts("\n### [set boot ver] flash write fail\n");
+}
+
+void init_mac(void)
+{
+    uint8_t ptr[8];
+    int rc;
+
+    puts("\ninit mac\n");
+    memset(ptr, 0, sizeof(ptr));
+    ptr[0] = 0x00;
+    ptr[1] = 0x11;
+    ptr[2] = 0x11;
+    ptr[3] = 0x11;
+    ptr[4] = 0x11;
+    ptr[5] = 0x11;
+
+    rc = replace(MAC_OFFSET, ptr, 6);
+
+    if (rc)
+        puts("\n### [init mac] flash write fail\n");
+    else
+        puts("\n### [init mac] flash write ok\n");
+
+#if defined(DUAL_BAND)
+    ptr[0] = 0x00;
+    ptr[1] = 0x22;
+    ptr[2] = 0x22;
+    ptr[3] = 0x22;
+    ptr[4] = 0x22;
+    ptr[5] = 0x22;
+
+    rc = replace(MAC_5G_OFFSET, ptr, 6);
+
+    if (rc)
+        puts("\n### [init mac2] flash write fail\n");
+    else
+        puts("\n### [init mac2] flash write ok\n");
+#endif
+
+    ptr[0] = 0x44;
+    ptr[1] = 0x42;
+
+    rc = replace(COUNTRY_CODE_OFFSET, ptr, 2);
+
+    if (rc)
+        puts("\n### [init countrycode] flash write fail\n");
+    else
+        puts("\n### [init countrycode] flash write ok\n");
+
+    ptr[0] = 0x31;
+    ptr[1] = 0x32;
+    ptr[2] = 0x33;
+    ptr[3] = 0x34;
+    ptr[4] = 0x35;
+    ptr[5] = 0x36;
+    ptr[6] = 0x37;
+    ptr[7] = 0x30;
+
+    rc = replace(PIN_CODE_OFFSET, ptr, 8);
+
+    if (rc)
+        puts("\n### [init pincode] flash write fail\n");
+    else
+        puts("\n### [init pincode] flash write ok\n");
+}
+
+/* Restore to default. */
+int reset_to_default(cmd_tbl_t *cmdtp)
+{
+    int rc = 0;
+
+    char s[128];
+    char nvram_addr[] = "ffffffffXXX";
+    char nvram_size[] = "ffffffffXXX";
+    char *nmbm_erase_argv[] = { NULL, "nmbm0", "erase", nvram_addr, nvram_size };
+    ulong addr, size;
+
+    addr = NAND_NVRAM_OFFSET;
+    size = NAND_NVRAM_SIZE;
+
+    sprintf(nvram_addr, "0x%lx", addr);
+    sprintf(nvram_size, "0x%lx", size);
+
+    memset(s, 0, sizeof(s));
+    sprintf(s, "Erase 0x%08lx size 0x%lx\n", addr, size);
+    puts(s);
+    rc = do_nmbm(cmdtp, 0, ARRAY_SIZE(nmbm_erase_argv), nmbm_erase_argv);
+
+    return rc;
+}
+
+void rescue_done(int ok)
+{
+    int i;
+
+    tftp_state = STATE_OACK;
+    if (!ok)
+        RescueAckFlag = 0x0000;
+    else
+        RescueAckFlag = 0x0001;
+
+    for (i=0; i<6; i++)
+        tftp_send();
+}
+
+int boot_write_img(ulong buf_addr, ulong addr, ulong size);
+void SolveTRX(void)
+{
+    char s[256];
+    ulong size;
+    int rc = 0, rcc = 0;
+    u_char *ptr = (u_char *)load_addr;
+
+    size = (ulong)check_trx((ulong)ptr);
+    if (size <= 0)
+    {
+        puts("Check trx error! SYSTEM RESET!!!\n\n");
+        goto SolveTRX_DoReset;
+    }
+
+    // Write 1st firmware
+    if (size <= MAX_NAND_LINUX_SIZE)
+    {
+        rc = boot_write_img(load_addr, NAND_LINUX_OFFSET, size);
+        if (rc != 0)
+            puts("Write 1st firmware fail!!\n");
+        else
+            rcc = 1;
+    }
+    else
+    {
+        puts("Write 1st firmware fail, TRX size > MAX_NAND_LINUX_SIZE!!\n");
+    }
+
+#if defined(DUAL_TRX)
+    // Write 2st firmware
+    if (size <= MAX_NAND_LINUX_SIZE_2)
+    {
+        rc = boot_write_img(load_addr, NAND_LINUX_OFFSET_2, size);
+        if (rc != 0)
+            puts("Write 2st firmware fail!!\n");
+        else
+            rcc = 1;
+    }
+    else
+    {
+        puts("Write 2st firmware fail, TRX size > MAX_NAND_LINUX_SIZE_2!!\n");
+    }
+#endif  // DUAL_TRX
+
+    if (!rcc)
+    {
+        puts("Rescue failed ...\n");
+        rescue_done(0);
+    }
+    else
+    {
+        memset(s, 0, sizeof(s));
+        sprintf(s, "done. %ld(0x%08lx) bytes written\n", size, size);
+        puts(s);
+        rescue_done(1);
+        goto SolveTRX_DoReset;
+    }
+
+    return;
+
+SolveTRX_DoReset:
+    udelay(500);
+    do_reset (NULL, 0, 0, NULL);
+    return;
+}
+
+int boot_write_img(ulong buf_addr, ulong addr, ulong size)
+{
+    char kern_addr[] = "ffffffffXXX";
+    char kern_size[] = "ffffffffXXX";
+    char mem_addr[] = "ffffffffXXX";
+
+    char *nmbm_erase_argv[] = { NULL, "nmbm0", "erase", kern_addr, kern_size };
+    char *nmbm_write_argv[] = { NULL, "nmbm0", "write", mem_addr, kern_addr, kern_size };
+
+    int rc = 0;
+    char s[256];
+#if defined(CONFIG_TRX)
+    if (buf_addr <= 0 || addr < 0 || size <= 0)
+#else	    
+    if (buf_addr <= 0 || addr <= 0 || size <= 0)
+#endif	    
+    {
+        puts("invalid arg !!\n");
+        return 1;
+    }
+
+    sprintf(kern_addr, "0x%lx", addr);
+    sprintf(kern_size, "0x%lx", size);
+    sprintf(mem_addr, "0x%lx", buf_addr);
+
+    // nmbm nmbm0 erase 0x3e0000 ${filesize}
+    rc = do_nmbm(NULL, 0, ARRAY_SIZE(nmbm_erase_argv), nmbm_erase_argv);
+    if (rc != 0)
+    {
+        memset(s, 0, sizeof(s));
+        sprintf(s, "nmbm nmbm0 erase %s %s, error !!\n", kern_addr, kern_size);
+        puts(s);
+        return 1;
+    }
+
+    // nmbm nmbm0 ${loadaddr} 0x3e0000 ${filesize}
+    rc = do_nmbm(NULL, 0, ARRAY_SIZE(nmbm_write_argv), nmbm_write_argv);
+    if (rc != 0)
+    {
+        memset(s, 0, sizeof(s));
+        sprintf(s, "nmbm nmbm0 write %s %s %s, error !!\n", mem_addr, kern_addr, kern_size);
+        puts(s);
+        return 1;
+    }
+
+    return 0;
+}
+
+extern int mtd_read(struct mtd_info *mtd, loff_t from, size_t len, size_t *retlen, u_char *buf);
+extern int genimg_get_format(const void *img_addr);
+int boot_read_img(ulong buf_addr, ulong addr)
+{
+    char kern_addr[] = "ffffffffXXX";
+    char mem_addr[] = "ffffffffXXX";
+    char file_size[] = "ffffffffXXX";
+	unsigned int img_file_size = 0;
+
+    char *nmbm_read_argv1[] = { NULL, "nmbm0", "read", mem_addr, kern_addr, "0x2000"};
+    char *nmbm_read_argv2[] = { NULL, "nmbm0", "read", mem_addr, kern_addr, file_size};
+
+    sprintf(kern_addr, "0x%lx", addr);
+    sprintf(mem_addr, "0x%lx", buf_addr);
+
+    int rc = 0;
+    char s[256];
+
+    if (buf_addr <= 0 || addr <= 0)
+    {
+        puts("invalid arg !!\n");
+        return 1;
+    }
+
+    // nmbm nmbm0 read ${loadaddr} 0x3e0000 0x2000
+    rc = do_nmbm(NULL, 0, ARRAY_SIZE(nmbm_read_argv1), nmbm_read_argv1);
+    if (rc != 0)
+    {
+        memset(s, 0, sizeof(s));
+        sprintf(s, "nmbm nmbm0 read %s %s 0x2000, error !!\n", mem_addr, kern_addr);
+        puts(s);
+        return 1;
+    }
+
+    image_header_t *hdr = (image_header_t *)buf_addr;
+    img_file_size = (int)(sizeof(image_header_t) + htonl(hdr->ih_size));
+    sprintf(file_size, "0x%08x", img_file_size);
+
+    // nmbm nmbm0 read ${loadaddr} 0x3e0000 ${file_size}
+#if 1  //for zenwifi model , blink green led   
+    int i=0;
+    #define THREE_SECONDS_BYTES     0x500000
+    while(1)
+    {
+    	sprintf(kern_addr, "0x%lx", addr+THREE_SECONDS_BYTES*i);
+    	sprintf(mem_addr, "0x%lx", buf_addr+THREE_SECONDS_BYTES*i);
+    	sprintf(file_size, "0x%08x", THREE_SECONDS_BYTES);
+	if(img_file_size<THREE_SECONDS_BYTES*i)
+	{
+    		sprintf(file_size, "0x%08x", img_file_size-THREE_SECONDS_BYTES*(i-1));
+    		sprintf(kern_addr, "0x%lx", addr+THREE_SECONDS_BYTES*(i-1));
+    		sprintf(mem_addr, "0x%lx", buf_addr+THREE_SECONDS_BYTES*(i-1));
+		printf("remaining file size =%x\n",file_size);
+	}
+
+    	rc = do_nmbm(NULL, 0, ARRAY_SIZE(nmbm_read_argv2), nmbm_read_argv2);
+	if(i%2) //first block
+		GREEN_LEDOFF();
+	else
+		GREEN_LEDON();
+
+	if(rc!=0) //read nmbm error
+	{	
+        	sprintf(s, "nmbm nmbm0 read %s %s %s, error !!\n", mem_addr, kern_addr, file_size);
+		break;
+	}	
+	if(THREE_SECONDS_BYTES*i > img_file_size)
+	{
+		printf("nmbm nmbm0 read done!\n");
+		break;
+	}	
+	i++;
+    }
+#else    
+    rc = do_nmbm(NULL, 0, ARRAY_SIZE(nmbm_read_argv2), nmbm_read_argv2);
+#endif
+    if (rc != 0)
+    {
+        memset(s, 0, sizeof(s));
+        sprintf(s, "nmbm nmbm0 read %s %s %s, error !!\n", mem_addr, kern_addr, file_size);
+        puts(s);
+        return 1;
+    }
+    return 0;
+}
+
+int do_tftpd(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+    char s[256];
+    const int press_times = 1;
+    int i = 0;
+
+    if (chkVer() == 0)
+        set_ver();
+
+    if (chkMAC() < 0)
+        init_mac();
+
+    if(DETECT() > 0)        /* Reset to default button */
+    {
+	RESCUE_LED();
+        puts("\n## Enter Rescue Mode ##\n");
+#if defined(CONFIG_TFTPD)	
+	env_set("autostart", "no");
+        if (net_loop(TFTPD) < 0)
+#else		
+        if (net_loop(TFTPSRV) < 0)
+#endif		
+            return 1;
+    }
+    else if (DETECT_WPS() > 0)  /* WPS button */
+    {
+        /* Make sure WPS button is pressed at least press_times * 0.01s. */
+        while (DETECT_WPS() && i++ < press_times) {
+            udelay(10000);
+        }
+
+        if (i >= press_times) {
+            while (DETECT_WPS() > 0) {
+                udelay(500000);
+
+                i++;
+                if (i & 1)
+                    LEDON();
+                else
+                    LEDOFF();
+            }
+            LEDOFF();
+            puts("## Reset to default ##\n");
+            reset_to_default(NULL);
+            do_reset (NULL, 0, 0, NULL);
+        }
+    }
+    else
+    {
+        ra_flash_init_layout();
+#if defined(DUAL_TRX)
+        int rc = 0;
+        int trx_len = 0;
+
+        trx_len = 0;
+        rc = boot_read_img(load_addr, NAND_LINUX_OFFSET);
+
+        if (rc == 0) trx_len = check_trx(load_addr);
+
+        if (trx_len <= 0)
+        {
+            trx_len = 0;
+            rc = boot_read_img(load_addr, NAND_LINUX_OFFSET_2);
+            if (rc == 0) trx_len = check_trx(load_addr);
+
+            if (trx_len <= 0)
+            {
+                puts("\n## Both firmware damaged ...\n");
+                puts("\n## Enter Rescue Mode ##\n");
+#if defined(CONFIG_TFTPD)	
+		env_set("autostart", "no");
+		if (net_loop(TFTPD) < 0)
+#else		
+                if (net_loop(TFTPSRV) < 0)
+#endif			
+                    return 1;
+            }
+            else
+            {
+                puts("\n## 1st FW damaged; 2nd FW good ...\n");
+                rc = boot_write_img(load_addr, NAND_LINUX_OFFSET, trx_len);
+                if (rc != 0)
+                {
+                    memset(s, 0, sizeof(s));
+                    sprintf(s, "\n## Write firmware to 0x%x, length 0x%x fail. (rc = %d)\n", NAND_LINUX_OFFSET, trx_len, rc);
+                    puts(s);
+                }
+
+                puts("\n## Fix 1st FW and boot from 2st FW ...\n");
+            }
+        }
+
+        do_bootm(NULL, 0, 0, NULL);
+#else   // DUAL_TRX
+        ulong size = 0;
+        int rc = 0;
+        char s[256];
+
+        rc = boot_read_img(load_addr, NAND_LINUX_OFFSET);
+        if (rc != 0)
+        {
+            memset(s, 0, sizeof(s));
+            sprintf(s, "Read firmware from 0x%x, length 0x%lx fail. (len %lx, rc = %d)\n", NAND_LINUX_OFFSET, MAX_NAND_LINUX_SIZE, rc);
+            puts(s);
+            puts("\n## Enter Rescue Mode ##\n");
+            if (net_loop(TFTPSRV) < 0)
+                return 1;
+        }
+
+        size = check_trx(load_addr);
+        if (size <= 0)
+        {
+            puts(" \nHello!! Enter Recuse Mode: (Check error)\n\n");
+            if (net_loop(TFTPSRV) < 0)
+                return 1;
+        }*/
+
+        do_bootm(NULL, 0, 0, NULL);
+#endif  // DUAL_TRX
+    }
+
+    return 0;
+}
+
+U_BOOT_CMD(
+    tftpd, 1, 1, do_tftpd,
+    "tftpd\t -load the data by tftp protocol\n",
+    NULL
+);
+
+#endif
 
 /**********************************************************************/
 
@@ -323,9 +804,18 @@ static void tftp_complete(void)
 	}
 	puts("\ndone\n");
 	net_set_state(NETLOOP_SUCCESS);
+#if CONFIG_ASUS_PRODUCT
+    if (TftpStarted == 1)
+       SolveTRX();
+#endif  // CONFIG_ASUS_PRODUCT
 }
 
-static void tftp_send(void)
+#ifdef CONFIG_ASUS_PRODUCT
+void
+#else	// CONFIG_ASUS_PRODUCT
+static void
+#endif
+tftp_send(void)
 {
 	uchar *pkt;
 	uchar *xp;
@@ -347,6 +837,19 @@ static void tftp_send(void)
 	switch (tftp_state) {
 	case STATE_SEND_RRQ:
 	case STATE_SEND_WRQ:
+#ifdef CONFIG_ASUS_PRODUCT
+        if (TftpStarted == 1)
+        {
+            xp = pkt;
+            s = (ushort*)pkt;
+            *s++ = htons((tftp_state==STATE_SEND_RRQ)?TFTP_DATA:TFTP_ACK);
+            *s++ = htons(tftp_cur_block);/*fullfill the data part*/
+            pkt = (uchar*)s;
+            len = pkt - xp;
+        }
+        else
+        {
+#endif  // CONFIG_ASUS_PRODUCT
 		xp = pkt;
 		s = (ushort *)pkt;
 #ifdef CONFIG_CMD_TFTPPUT
@@ -385,6 +888,9 @@ static void tftp_send(void)
 		}
 #endif /* CONFIG_MCAST_TFTP */
 		len = pkt - xp;
+#ifdef CONFIG_ASUS_PRODUCT
+        }
+#endif  // CONFIG_ASUS_PRODUCT
 		break;
 
 	case STATE_OACK:
@@ -399,6 +905,18 @@ static void tftp_send(void)
 
 	case STATE_RECV_WRQ:
 	case STATE_DATA:
+#ifdef CONFIG_ASUS_PRODUCT
+        if (TftpStarted == 1 && tftp_state == STATE_OACK)
+        {
+            xp = pkt;
+            s = (ushort*)pkt;
+            *s++ = htons(TFTP_OACK);
+            *s++ = htons(RescueAckFlag);
+            pkt = (uchar*)s;
+        }
+        else
+        {
+#endif  // CONFIG_ASUS_PRODUCT
 		xp = pkt;
 		s = (ushort *)pkt;
 		s[0] = htons(TFTP_ACK);
@@ -414,6 +932,9 @@ static void tftp_send(void)
 			tftp_put_final_block_sent = (loaded < toload);
 		}
 #endif
+#ifdef CONFIG_ASUS_PRODUCT
+        }
+#endif  // CONFIG_ASUS_PRODUCT
 		len = pkt - xp;
 		break;
 
@@ -484,6 +1005,50 @@ static void tftp_handler(uchar *pkt, unsigned dest, struct in_addr sip,
 	pkt = (uchar *)s;
 	switch (ntohs(proto)) {
 	case TFTP_RRQ:
+#ifdef CONFIG_ASUS_PRODUCT
+        net_copy_ip(&tftp_remote_ip,&TempServerIP);
+        tftp_remote_port = src;
+        tftp_cur_block = 1;
+        tftp_block_wrap_offset = 0;
+        tftp_state = STATE_SEND_RRQ;
+
+        for (i=0; i<13; i++)
+        {
+            if (*pkt++ != asuslink[i])
+                break;
+        }
+        if (i==13)
+        { /* it's the firmware transmitting situation */
+            /* here get the IP address from the first packet. */
+            net_ip.s_addr = (*pkt++) & 0x000000ff;
+            net_ip.s_addr<<=8;
+            net_ip.s_addr|= (*pkt++) & 0x000000ff;
+            net_ip.s_addr<<=8;
+            net_ip.s_addr|= (*pkt++) & 0x000000ff;
+            net_ip.s_addr<<=8;
+            net_ip.s_addr|= (*pkt++) & 0x000000ff;
+        }
+        else
+        {
+            for (i=0; i<13; i++)
+            {
+                if (*pkt++ != maclink[i])
+                    break;
+            }
+            if(i==13)
+            {
+                /* here get the IP address from the first packet. */
+                net_ip.s_addr = (*pkt++) & 0x000000ff;
+                net_ip.s_addr<<=8;
+                net_ip.s_addr|= (*pkt++) & 0x000000ff;
+                net_ip.s_addr<<=8;
+                net_ip.s_addr|= (*pkt++) & 0x000000ff;
+                net_ip.s_addr<<=8;
+                net_ip.s_addr|= (*pkt++) & 0x000000ff;
+            }
+        }
+        tftp_send();//send a vacant Data packet as a ACK
+#endif	// CONFIG_ASUS_PRODUCT
 		break;
 
 	case TFTP_ACK:
@@ -514,10 +1079,16 @@ static void tftp_handler(uchar *pkt, unsigned dest, struct in_addr sip,
 #ifdef CONFIG_CMD_TFTPSRV
 	case TFTP_WRQ:
 		debug("Got WRQ\n");
+#ifdef CONFIG_ASUS_PRODUCT
+        tftp_remote_port = src;
+        tftp_cur_block = 0;
+        tftp_state = STATE_SEND_WRQ;
+#else   // CONFIG_ASUS_PRODUCT
 		tftp_remote_ip = sip;
 		tftp_remote_port = src;
 		tftp_our_port = 1024 + (get_timer(0) % 3072);
 		new_transfer();
+#endif  // CONFIG_ASUS_PRODUCT
 		tftp_send(); /* Send ACK(0) */
 		break;
 #endif
@@ -565,6 +1136,9 @@ static void tftp_handler(uchar *pkt, unsigned dest, struct in_addr sip,
 		tftp_send(); /* Send ACK or first data block */
 		break;
 	case TFTP_DATA:
+#if defined(CONFIG_RTAX53U) || defined(CONFIG_4GAX56) || defined(CONFIG_RTAX54)
+        PWR_LEDON();
+#endif  // CONFIG_RTAX53U
 		if (len < 2)
 			return;
 		len -= 2;
@@ -682,9 +1256,22 @@ static void tftp_handler(uchar *pkt, unsigned dest, struct in_addr sip,
 	}
 }
 
+#ifdef CONFIG_ASUS_PRODUCT
+static int led_state = 0;
+#endif
 
 static void tftp_timeout_handler(void)
 {
+
+#ifdef CONFIG_ASUS_PRODUCT
+	if(led_state == 1) {
+		LEDON();
+		led_state = 0;
+	} else {
+		LEDOFF();
+		led_state = 1;
+	}
+#endif
 	if (++timeout_count > timeout_count_max) {
 		restart("Retry count exceeded");
 	} else {
@@ -756,8 +1343,11 @@ void tftp_start(enum proto_t protocol)
 #else
 	       "from",
 #endif
+#if defined(CONFIG_ASUS_PRODUCT)
+	       &tftp_remote_ip, &net_ip.s_addr);
+#else
 	       &tftp_remote_ip, &net_ip);
-
+#endif
 	/* Check if we need to send across this subnet */
 	if (net_gateway.s_addr && net_netmask.s_addr) {
 		struct in_addr our_net;
@@ -840,10 +1430,17 @@ void tftp_start(enum proto_t protocol)
 #ifdef CONFIG_CMD_TFTPSRV
 void tftp_start_server(void)
 {
+#if defined(CONFIG_ASUS_PRODUCT)
+    u_char *ptr = NULL;
+#endif  // CONFIG_ASUS_PRODUCT
 	tftp_filename[0] = 0;
 
 	printf("Using %s device\n", eth_get_name());
+#if defined(CONFIG_ASUS_PRODUCT)
+	printf("Listening for TFTP transfer on %pI4\n", &net_ip.s_addr);
+#else
 	printf("Listening for TFTP transfer on %pI4\n", &net_ip);
+#endif
 	printf("Load address: 0x%lx\n", load_addr);
 
 	puts("Loading: *\b");
@@ -868,6 +1465,12 @@ void tftp_start_server(void)
 
 	/* zero out server ether in case the server ip has changed */
 	memset(net_server_ethaddr, 0, 6);
+
+#ifdef CONFIG_ASUS_PRODUCT
+    ptr = (u_char *)load_addr;
+    memset(ptr, 0, sizeof(ptr));
+    TftpStarted = 1;
+#endif  // CONFIG_ASUS_PRODUCT
 }
 #endif /* CONFIG_CMD_TFTPSRV */
 

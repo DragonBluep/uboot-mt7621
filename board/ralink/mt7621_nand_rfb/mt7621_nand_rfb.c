@@ -66,6 +66,17 @@ int board_nmbm_init(void)
 	return 0;
 }
 
+#ifdef CONFIG_LAST_STAGE_INIT
+int last_stage_init(void)
+{
+	gpio_init();
+	LEDOFF();
+	PWR_LEDON();
+	GREEN_LEDON();
+	return 0;
+}
+#endif
+
 #ifdef CONFIG_SPL_BUILD
 void board_boot_order(u32 *spl_boot_list)
 {

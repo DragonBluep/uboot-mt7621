@@ -74,7 +74,11 @@ char *get_mtk_stage2_image_ptr(char *data, size_t size)
 			return NULL;
 
 		/* For NAND boot, determine whether this is the SPL part */
+#if defined(CONFIG_ASUS_PRODUCT)
+		mt7621_nhdr = (nand_header_t *) hdr.u.ih_name;
+#else
 		mt7621_nhdr = (nand_header_t *) hdr.ih_name;
+#endif
 
 		old_chksum = uimage_to_cpu(mt7621_nhdr->crc);
 		mt7621_nhdr->crc = 0;
@@ -146,7 +150,11 @@ int check_mtk_stock_stage2_info(size_t *stage2_off_min, size_t *stage2_off,
 			return 0;
 
 		/* For NAND boot, determine whether this is the SPL part */
+#if defined(CONFIG_ASUS_PRODUCT)
+		mt7621_nhdr = (nand_header_t *) hdr.u.ih_name;
+#else
 		mt7621_nhdr = (nand_header_t *) hdr.ih_name;
+#endif
 
 		old_chksum = uimage_to_cpu(mt7621_nhdr->crc);
 		mt7621_nhdr->crc = 0;

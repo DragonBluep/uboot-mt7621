@@ -479,6 +479,48 @@ config ARCH_FIXUP_FDT_MEMORY
 
 endmenu		# Boot images
 
+config ASUS_PRODUCT
+	bool "Enable ASUS PRODUCT"
+	default n
+	help
+	  Enable ASUS PRODUCT.
+
+config XD4S
+	bool "Enable XD4S"
+	default n
+	help
+	  Enable XD4S.
+
+config RTAX53U
+	bool "Enable RTAX53U"
+	default n
+	help
+	  Enable RTAX53U.
+
+config RTAX54
+	bool "Enable RTAX54"
+	default n
+	help
+	  Enable RTAX54.
+
+config 4GAX56
+	bool "Enable 4GAX56"
+	default n
+	help
+  Enable 4GAX56.
+
+config TFTPD
+	bool "Enable tfptd service"
+	default n
+	help
+  Enable Tftpd.
+
+config TRX
+	bool "Make Trx file"
+	default n
+	help
+  Make Trx file.
+
 source "api/Kconfig"
 
 source "common/Kconfig"

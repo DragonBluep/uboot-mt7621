@@ -870,7 +870,12 @@ int genimg_get_format(const void *img_addr)
 
 	hdr = (const image_header_t *)img_addr;
 	if (image_check_magic(hdr))
+	{
+		if (fdt_check_header(img_addr+0x40) == 0)
+			return IMAGE_FORMAT_LEGACYFIT;
+		else
 		return IMAGE_FORMAT_LEGACY;
+	}
 #endif
 #if IMAGE_ENABLE_FIT || IMAGE_ENABLE_OF_LIBFDT
 	if (fdt_check_header(img_addr) == 0)

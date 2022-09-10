@@ -471,6 +471,12 @@ restart:
 			fastboot_start_server();
 			break;
 #endif
+#if defined(CONFIG_TFTPD)
+                case TFTPD:
+                        printf("tftpd start\n");
+                        TftpdStart();
+                        break;
+#endif
 #if defined(CONFIG_CMD_DHCP)
 		case DHCP:
 			bootp_reset();
@@ -716,7 +722,15 @@ int net_start_again(void)
 			retrycnt = simple_strtoul(nretry, NULL, 0);
 	} else {
 		retrycnt = 0;
+#if !defined(CONFIG_ASUS_PRODUCT)
 		retry_forever = 0;
+#else	// !CONFIG_ASUS_PRODUCT
+		extern int TftpStarted;
+		if (TftpStarted == 1)
+			retry_forever = 1;
+		else
+			retry_forever = 0;
+#endif	// !CONFIG_ASUS_PRODUCT
 	}
 
 	if ((!retry_forever) && (net_try_count > retrycnt)) {
