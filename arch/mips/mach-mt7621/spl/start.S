@@ -195,8 +195,10 @@ reset:
 	bal	mips_stack_sram_init
 	 nop
 
-	/* Set up initial stack and global data */
-	setup_stack_gd CONFIG_SYS_INIT_SP_ADDR
+	/* Set up initial stack */
+	li	t0, -16
+	PTR_LI	t1, CONFIG_SYS_INIT_SP_ADDR
+	and	sp, t1, t0		# force 16 byte alignment
 
 #ifndef CONFIG_TPL_BUILD
 #ifdef CONFIG_DEBUG_UART
@@ -206,12 +208,30 @@ reset:
 #endif
 #endif
 
-	/* Initialize any external memory */
-	bal	lowlevel_init
+	/* Initialize MIPS CPS */
+	bal	pre_lowlevel_init
 	 nop
 
 #if defined(CONFIG_NAND_BOOT) || \
     (defined(CONFIG_TPL) && !defined(CONFIG_TPL_BUILD))
+#ifndef CONFIG_MT7621_LEGACY_DRAMC_BIN
+	/* Set up initial stack and global data */
+	setup_stack_gd CONFIG_SYS_INIT_SP_ADDR
+#endif
+
+	/* Initialize any external memory */
+	bal	lowlevel_init
+	 nop
+
+#ifdef CONFIG_MT7621_LEGACY_DRAMC_BIN
+	/* Set up initial stack and global data */
+	setup_stack_gd CONFIG_SYS_INIT_SP_ADDR
+#endif
+
+	/* Initialize USB XHCI */
+	bal	post_lowlevel_init
+	 nop
+
 	/*
 	 * Currently we are running on locked L2 cache (on KSEG0).
 	 * To reset the entire cache, we have to move ourself to uncached

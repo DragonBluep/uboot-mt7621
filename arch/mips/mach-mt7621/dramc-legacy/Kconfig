@@ -1,0 +1,70 @@
+menu "CPU & DDR configuration"
+	depends on MT7621_LEGACY_DRAMC_BIN
+
+config MT7621_CPU_FREQ_LEGACY
+	int "CPU Frequency (MHz)"
+	range 400 1200
+	default 880
+
+choice
+	prompt "DRAM Frequency"
+	default MT7621_DRAM_FREQ_1200_LEGACY
+
+config MT7621_DRAM_FREQ_400_LEGACY
+	bool "400MHz"
+
+config MT7621_DRAM_FREQ_800_LEGACY
+	bool "800MHz"
+
+config MT7621_DRAM_FREQ_1066_LEGACY
+	bool "1066MHz"
+
+config MT7621_DRAM_FREQ_1200_LEGACY
+	bool "1200MHz"
+
+endchoice
+
+choice
+	prompt "Prefered DDR2 init parameters"
+	default MT7621_DRAM_DDR2_1024M_LEGACY
+
+config MT7621_DRAM_DDR2_512M_LEGACY
+	bool "64MB"
+
+config MT7621_DRAM_DDR2_1024M_LEGACY
+	bool "128MB"
+
+config MT7621_DRAM_DDR2_512M_W9751G6KB_A02_1066MHZ_LEGACY
+	bool "W9751G6KB_A02 @ 1066MHz (64MB)"
+
+config MT7621_DRAM_DDR2_1024M_W971GG6KB25_800MHZ_LEGACY
+	bool "W971GG6KB25 @ 800MHz (128MB)"
+
+config MT7621_DRAM_DDR2_1024M_W971GG6KB18_1066MHZ_LEGACY
+	bool "W971GG6KB18 @ 1066MHz (128MB)"
+
+endchoice
+
+choice
+	prompt "Prefered DDR3 init parameters"
+	default MT7621_DRAM_DDR3_2048M_LEGACY
+
+config MT7621_DRAM_DDR3_1024M_LEGACY
+	bool "128MB"
+
+config MT7621_DRAM_DDR3_1024M_KGD_LEGACY
+	bool "128MB KGD"
+
+config MT7621_DRAM_DDR3_2048M_LEGACY
+	bool "256MB"
+
+config MT7621_DRAM_DDR3_4096M_LEGACY
+	bool "512MB"
+
+endchoice
+
+config MT7621_DRAMC_DEBUG_LEGACY
+	bool "Enable verbose output during DRAMC initialization"
+	default y
+
+endmenu

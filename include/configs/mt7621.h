@@ -27,11 +27,6 @@
 /* MMC */
 #define MMC_SUPPORTS_TUNING
 
-/* Environment */
-#define CONFIG_ENV_SIZE			0x10000
-#define CONFIG_ENV_OFFSET		0x30000
-#define CONFIG_ENV_SECT_SIZE		0x10000
-
 /* Network */
 #define CONFIG_IPADDR			192.168.1.1
 #define CONFIG_SERVERIP			192.168.1.2

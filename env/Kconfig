@@ -447,7 +447,7 @@ config ENV_EXT4_FILE
 	  It's a string of the EXT4 file name. This file use to store the
 	  environment (explicit path to the file)
 
-if ARCH_ROCKCHIP || ARCH_SUNXI || ARCH_ZYNQ || ARCH_ZYNQMP
+if ARCH_ROCKCHIP || ARCH_SUNXI || ARCH_ZYNQ || ARCH_ZYNQMP || MACH_MT7621
 
 config ENV_OFFSET
 	hex "Environment Offset"
@@ -470,7 +470,7 @@ config ENV_SIZE
 
 config ENV_SECT_SIZE
 	hex "Environment Sector-Size"
-	depends on !ENV_IS_NOWHERE && (ARCH_ZYNQ || ARCH_ZYNQMP)
+	depends on !ENV_IS_NOWHERE && (ARCH_ZYNQ || ARCH_ZYNQMP || MACH_MT7621)
 	default 0x40000 if ARCH_ZYNQMP
 	default 0x20000 if ARCH_ZYNQ
 	help

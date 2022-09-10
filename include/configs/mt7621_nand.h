@@ -32,11 +32,6 @@
 #define CONFIG_SPL_NAND_DRIVERS
 #endif
 
-/* Environment */
-#define CONFIG_ENV_SIZE			0x20000
-#define CONFIG_ENV_OFFSET		0x80000
-#define CONFIG_ENV_SECT_SIZE		0x20000
-
 /* Network */
 #define CONFIG_IPADDR			192.168.1.1
 #define CONFIG_SERVERIP			192.168.1.2

@@ -125,6 +125,11 @@ config MACH_MT7621
 	select SUPPORT_SPL
 	select SUPPORT_TPL
 	select BINMAN
+	select SPL
+	select SPL_FRAMEWORK
+	select SPL_LEGACY_IMAGE_SUPPORT
+	select SPL_LIBCOMMON_SUPPORT
+	select SPL_LIBGENERIC_SUPPORT
 
 endchoice
 

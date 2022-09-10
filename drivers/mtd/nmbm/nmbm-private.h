@@ -1,7 +1,7 @@
-/* SPDX-License-Identifier: GPL-2.0 */
+/* SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause */
 /*
  * Copyright (C) 2020 MediaTek Inc. All Rights Reserved.
- * 
+ *
  * Definitions for NAND Mapped-block Management (NMBM)
  *
  * Author: Weijie Gao <weijie.gao@mediatek.com>

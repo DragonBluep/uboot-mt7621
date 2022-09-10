@@ -307,7 +307,7 @@ static int nmbm_mtd_read_oob(struct mtd_info *mtd, loff_t from,
 		pr_debug("%s: unsupported oob mode: %u\n", __func__, ops->mode);
 		return -ENOTSUPP;
 	}
-	
+
 	maxooblen = mtd_oobavail(mtd, ops);
 
 	/* Do not allow read past end of device */
@@ -443,7 +443,7 @@ static int nmbm_mtd_write_oob(struct mtd_info *mtd, loff_t to,
 			 ops->mode);
 		return -ENOTSUPP;
 	}
-	
+
 	maxooblen = mtd_oobavail(mtd, ops);
 
 	/* Do not allow write past end of device */

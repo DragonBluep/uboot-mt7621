@@ -519,6 +519,19 @@ static int do_write_bootloader(void *flash, size_t stock_stage2_off,
 
 	printf("OK\n");
 
+#ifndef CONFIG_ENV_IS_NOWHERE
+	printf("Erasing environment from 0x%x to 0x%x, size 0x%x ... ",
+	       CONFIG_ENV_OFFSET, CONFIG_ENV_OFFSET + CONFIG_ENV_SIZE - 1,
+	       CONFIG_ENV_SIZE);
+
+	ret = mtk_board_flash_erase(flash, CONFIG_ENV_OFFSET, CONFIG_ENV_SIZE);
+
+	if (ret)
+		printf("Fail\n");
+	else
+		printf("OK\n");
+#endif
+
 	printf("\n" COLOR_PROMPT "*** Bootloader upgrade completed! ***"
 	       COLOR_NORMAL "\n");
 
@@ -848,11 +861,31 @@ static const char *select_part(void)
 	return upgrade_parts[i].id;
 }
 
+static int confirm_yes(const char *prompt)
+{
+	char yn[CONFIG_SYS_CBSIZE + 1];
+
+	yn[0] = 0;
+
+	cli_highlight_input(prompt);
+	if (cli_readline_into_buffer(NULL, yn, 0) == -1)
+		return 0;
+
+	puts("\n");
+
+	if (!yn[0] || yn[0] == '\r' || yn[0] == '\n')
+		return 1;
+
+	return !strcmp(yn, "y") || !strcmp(yn, "Y") ||
+		!strcmp(yn, "yes") || !strcmp(yn, "YES");
+}
+
 static int do_mtkupgrade(cmd_tbl_t *cmdtp, int flag, int argc,
 	char *const argv[])
 {
 	enum file_type ft;
 	const char *part, *ft_name, *env_name;
+	int run = 0;
 
 	size_t data_load_addr;
 	uint32_t data_size = 0;
@@ -885,6 +918,11 @@ static int do_mtkupgrade(cmd_tbl_t *cmdtp, int flag, int argc,
 	printf("\n" COLOR_PROMPT "*** Upgrading %s ***" COLOR_NORMAL
 	       "\n\n", ft_name);
 
+	if (ft == TYPE_BL)
+		run = confirm_yes("Reboot after upgrading? (Y/n):");
+	else if (ft == TYPE_FW)
+		run = confirm_yes("Run firmware after upgrading? (Y/n):");
+
 	data_load_addr = CONFIG_SYS_LOAD_ADDR;
 
 	/* Load data */
@@ -897,6 +935,17 @@ static int do_mtkupgrade(cmd_tbl_t *cmdtp, int flag, int argc,
 	/* Write data */
 	if (write_data(ft, data_load_addr, data_size) != CMD_RET_SUCCESS)
 		return CMD_RET_FAILURE;
+
+	if (run) {
+		puts("\n");
+
+		if (ft == TYPE_BL) {
+			printf("Rebooting ...\n\n");
+			_machine_restart();
+		} else if (ft == TYPE_FW) {
+			run_command("mtkboardboot", 0);
+		}
+	}
 
 	return CMD_RET_SUCCESS;
 }
@@ -937,23 +986,6 @@ static int run_image(size_t data_addr, uint32_t data_size)
 	return do_bootm(find_cmd("do_bootm"), 0, 2, argv);
 }
 
-static int confirm_run_image(void)
-{
-	char yn[CONFIG_SYS_CBSIZE + 1];
-
-	yn[0] = 0;
-
-	cli_highlight_input("Run loaded data now? (Y/n):");
-	if (cli_readline_into_buffer(NULL, yn, 0) == -1)
-		return 0;
-
-	if (!yn[0] || yn[0] == '\r' || yn[0] == '\n')
-		return 1;
-
-	return !strcmp(yn, "y") || !strcmp(yn, "Y") ||
-		!strcmp(yn, "yes") || !strcmp(yn, "YES");
-}
-
 static int do_mtkload(cmd_tbl_t *cmdtp, int flag, int argc,
 	char *const argv[])
 {
@@ -992,7 +1024,7 @@ static int do_mtkload(cmd_tbl_t *cmdtp, int flag, int argc,
 	       COLOR_NORMAL "\n\n", data_size, data_size, data_load_addr);
 
 	/* Whether to run */
-	if (confirm_run_image()) {
+	if (confirm_yes("Run loaded data now? (Y/n):")) {
 		/* Run image */
 		if (run_image(data_load_addr, data_size) != CMD_RET_SUCCESS)
 			return CMD_RET_FAILURE;

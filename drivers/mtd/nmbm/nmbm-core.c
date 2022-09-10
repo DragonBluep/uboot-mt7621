@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause
 /*
  * Copyright (C) 2020 MediaTek Inc. All Rights Reserved.
  *
@@ -70,7 +70,7 @@ enum nmbm_log_category nmbm_set_log_level(struct nmbm_instance *ni,
 					  enum nmbm_log_category level)
 {
 	enum nmbm_log_category old;
-	
+
 	if (!ni)
 		return __NMBM_LOG_MAX;
 
@@ -321,7 +321,7 @@ static int nmbm_mark_phys_bad_block(struct nmbm_instance *ni, uint32_t ba)
 	level = nmbm_set_log_level(ni, __NMBM_LOG_MAX);
 
 	for (off = 0; off < ni->lower.erasesize; off += ni->lower.writesize) {
-		nmbm_write_phys_page(ni, addr + off, ni->page_cache, 
+		nmbm_write_phys_page(ni, addr + off, ni->page_cache,
 				     ni->page_cache + ni->lower.writesize,
 				     NMBM_MODE_RAW);
 	}
@@ -869,7 +869,7 @@ static bool nmbn_write_verify_data(struct nmbm_instance *ni, uint64_t addr,
  * @limit is not counted into the allowed write address.
  */
 static bool nmbm_write_mgmt_range(struct nmbm_instance *ni, uint32_t ba,
-				  uint32_t limit, const void *data, 
+				  uint32_t limit, const void *data,
 				  uint32_t size, uint32_t *actual_start_ba,
 				  uint32_t *actual_end_ba)
 {
@@ -1115,7 +1115,7 @@ static bool nmbm_rescue_single_info_table(struct nmbm_instance *ni)
 		nmbm_mark_tables_clean(ni);
 
 		/* Erase spare blocks of main table to clean possible interference data */
-		nmbm_erase_range(ni, table_start_ba, ni->backup_table_ba);
+		nmbm_erase_range(ni, table_end_ba, ni->backup_table_ba);
 
 		nlog_table_creation(ni, true, table_start_ba, table_end_ba);
 
@@ -1148,7 +1148,7 @@ static bool nmbm_rescue_single_info_table(struct nmbm_instance *ni)
 
 	if (success) {
 		/* Erase spare blocks of main table to clean possible interference data */
-		nmbm_erase_range(ni, ni->mapping_blocks_ba, table_end_ba);
+		nmbm_erase_range(ni, ni->mapping_blocks_ba, table_start_ba);
 
 		/* New table becomes the backup table */
 		ni->backup_table_ba = table_start_ba;
@@ -1914,6 +1914,9 @@ static bool nmbm_load_info_table(struct nmbm_instance *ni, uint32_t ba,
 			nmbm_mark_block_color_bad(ni, i);
 	}
 
+	/* Regenerate the info table cache from the final selected info table */
+	nmbm_generate_info_table_cache(ni);
+
 	/*
 	 * If only one table exists, try to write another table.
 	 * If two tables have different write count, try to update info table
@@ -2072,7 +2075,7 @@ static bool nmbm_check_lower_members(struct nmbm_lower_device *nld)
 {
 
 	if (!nld->size || !is_power_of_2_u64(nld->size)) {
-		nmbm_log_lower(nld, NMBM_LOG_ERR, 
+		nmbm_log_lower(nld, NMBM_LOG_ERR,
 			       "Chip size %llu is not valid\n", nld->size);
 		return false;
 	}
@@ -2316,7 +2319,7 @@ retry:
 	}
 
 	/* Remap logic block if current physical block is a bad block */
-	if (nmbm_get_block_state(ni, pb) == BLOCK_ST_BAD || 
+	if (nmbm_get_block_state(ni, pb) == BLOCK_ST_BAD ||
 	    nmbm_get_block_state(ni, pb) == BLOCK_ST_NEED_REMAP)
 		goto remap_logic_block;
 

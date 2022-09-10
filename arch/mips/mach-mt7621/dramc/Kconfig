@@ -1,4 +1,5 @@
 menu "CPU & DDR configuration"
+	depends on !MT7621_LEGACY_DRAMC_BIN
 
 config MT7621_CPU_FREQ
 	int "CPU Frequency (MHz)"
@@ -30,6 +31,16 @@ config MT7621_DRAM_FREQ
 	default "1066" if MT7621_DRAM_FREQ_1066
 	default "1200" if MT7621_DRAM_FREQ_1200
 	default "1200"
+
+config MT7621_DRAM_FREQ_TUNE
+	int "DRAM speed tune"
+	default 0
+	help
+	  This option is used to tune the DRAM frequency and will only take
+	  effect if the xtal clock is 40MHz.
+	  The final DRAM freq will be: DRAM_FREQ + 80 * DRAM_FREQ_TUNE.
+	  e.g.: if DRAM_FREQ == 1200, DRAM_FREQ_TUNE == 1, final DRAM clock
+	  will be 640MHz, and DRAM speed will be 1280MT/s
 
 config MT7621_DRAM_INIT_USER_PARAM_FIRST
 	bool "Use user-prefered DRAM initialization parameters first"
@@ -101,6 +112,6 @@ config MT7621_RESET_WHEN_DRAMC_FAIL
 
 config MT7621_DRAMC_DEBUG
 	bool "Enable verbose output during DRAMC initialization"
-	depends on MACH_MT7621
+	default y
 
 endmenu

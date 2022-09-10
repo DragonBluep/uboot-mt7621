@@ -21,15 +21,17 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#ifndef CONFIG_MT7621_LEGACY_DRAMC_BIN
 static void mt7621_dram_init(void);
+#endif
 static void mt7621_xhci_config(void);
 
-void lowlevel_init(void)
+void pre_lowlevel_init(void)
 {
-	void __iomem *base;
-
 #if !defined(CONFIG_SPL) || defined(CONFIG_TPL_BUILD) || \
     (!defined(CONFIG_TPL) && defined(CONFIG_SPL_BUILD))
+	void __iomem *base;
+
 	/* Initialize Coherent Processing System (CPS) related components */
 	mt7621_cps_init();
 
@@ -44,13 +46,29 @@ void lowlevel_init(void)
 	writel(REG_SET_VAL(CPU_FDIV, 1) | REG_SET_VAL(CPU_FFRAC, 1),
 		base + MT7621_RBUS_DYN_CFG0_REG);
 #endif
+}
 
+#ifndef CONFIG_MT7621_LEGACY_DRAMC_BIN
+void lowlevel_init(void)
+{
 #ifndef CONFIG_TPL_BUILD
 	/* Get CPU clock first so we can use delay functions */
 	get_cpu_freq(0);
 
 	/* Do DRAMC & DDR initialization */
 	mt7621_dram_init();
+#endif
+}
+#endif
+
+void post_lowlevel_init(void)
+{
+#ifndef CONFIG_TPL_BUILD
+	void __iomem *base;
+
+#ifdef CONFIG_MT7621_LEGACY_DRAMC_BIN
+	gd->ram_size = get_ram_size((void *) KSEG1, SZ_512M);
+#endif
 
 	/* Change CPU PLL from 500MHz to CPU_PLL */
 	base = (void __iomem *) CKSEG1ADDR(MT7621_SYSCTL_BASE);
@@ -83,6 +101,7 @@ int arch_early_init_r(void)
 	return 0;
 }
 
+#ifndef CONFIG_MT7621_LEGACY_DRAMC_BIN
 static void __maybe_unused mt7621_dram_init(void)
 {
 	void __iomem *base;
@@ -161,9 +180,10 @@ static void __maybe_unused mt7621_dram_init(void)
 
 	cfg.dram_speed = CONFIG_MT7621_DRAM_FREQ;
 	cfg.cpu_speed = CONFIG_MT7621_CPU_FREQ;
+	cfg.dram_speed_tune = CONFIG_MT7621_DRAM_FREQ_TUNE;
 
 	/* Base clock used for MPLL */
-	mt7621_get_clocks(NULL, NULL, &cfg.xtal_freq);
+	mt7621_get_clocks(NULL, NULL, NULL, &cfg.xtal_freq);
 
 	/* Change MPLL source from Xtal to CR */
 	setbits_le32(base + MT7621_SYS_CLKCFG0_REG,
@@ -191,6 +211,7 @@ void mt7621_dramc_reset(void)
 	__udelay(100);
 	clrbits_le32(base + MT7621_SYS_RSTCTL_REG, REG_SET_VAL(MC_RST, 1));
 }
+#endif
 
 int dram_init(void)
 {

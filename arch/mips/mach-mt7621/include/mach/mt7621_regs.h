@@ -186,6 +186,11 @@
 
 
 /* MT7621_DRAMC_BASE */
+#define MT7621_DRAMC_MEMPLL1_REG			0x0604
+#define   RG_MEPL_DIV2_SEL_S				  1
+#define   RG_MEPL_DIV2_SEL_M				  0x03
+
+#define MT7621_DRAMC_MEMPLL6_REG			0x0618
 #define MT7621_DRAMC_MEMPLL18_REG			0x0648
 #define   RG_MEPL_VODEN_S				  31
 #define   RG_MEPL_VODEN_M				  0x01

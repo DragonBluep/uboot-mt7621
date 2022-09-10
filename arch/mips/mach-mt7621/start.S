@@ -66,44 +66,8 @@
 
 ENTRY(_start)
 	/* U-Boot entry point */
-	b	reset
-	 mtc0	zero, CP0_COUNT	# clear cp0 count for most accurate boot timing
+	mtc0	zero, CP0_COUNT	# clear cp0 count for most accurate boot timing
 
-#ifndef CONFIG_SPL
-	/*
-	 * Exception vector entry points. When running from ROM, an exception
-	 * cannot be handled. Halt execution and transfer control to debugger,
-	 * if one is attached.
-	 */
-	.org 0x200
-	/* TLB refill, 32 bit task */
-	uhi_mips_exception
-
-	.org 0x280
-	/* XTLB refill, 64 bit task */
-	uhi_mips_exception
-
-	.org 0x300
-	/* Cache error exception */
-	uhi_mips_exception
-
-	.org 0x380
-	/* General exception */
-	uhi_mips_exception
-
-	.org 0x400
-	/* Catch interrupt exceptions */
-	uhi_mips_exception
-
-	.org 0x480
-	/* EJTAG debug exception */
-1:	b	1b
-	 nop
-
-	.org 0x500
-#endif
-
-reset:
 	/* MT7530 reset assert */
 	li	t0, 0xbe000000
 	lw	t1, 0x34(t0)
@@ -129,55 +93,12 @@ reset:
 	/* Clear timer interrupt (CP0_COUNT cleared on branch to 'reset') */
 	mtc0	zero, CP0_COMPARE
 
-#ifndef CONFIG_SPL
-#ifdef CONFIG_MIPS_CM
-	PTR_LA	t9, mips_cm_map
-	jalr	t9
-	 nop
-#endif
-
-	/* Non-VPE0 goes to LAUNCH wait code directly */
-	mfc0	t0, CP0_TCBIND
-	andi	t0, TCBIND_CURVPE
-	bnez	t0, launch_vpe_entry
-	 nop
-
-	/* Non-Core0 */
-	PTR_LI	t0, CKSEG1ADDR(CONFIG_MIPS_CM_BASE)
-	lw	t1, GCR_CL_ID(t0)
-	bnez	t1, launch_core_entry
-	 nop
-
-	mfc0	t0, CP0_CONFIG
-	and	t0, t0, MIPS_CONF_IMPL
-	or	t0, t0, CONF_CM_UNCACHED
-	mtc0	t0, CP0_CONFIG
-	ehb
-
-	/* Configure the SRAM before it can be used */
-	PTR_LA	t9, mips_stack_sram_init
-	jalr	t9
-	 nop
-#endif
-
 	/* Set up initial stack and global data */
 	setup_stack_gd
 
 #ifdef CONFIG_DEBUG_UART
 	/* Earliest point to set up debug uart */
 	PTR_LA	t9, debug_uart_init
-	jalr	t9
-	 nop
-#endif
-
-#ifndef CONFIG_SPL
-	/* Initialize any external memory */
-	PTR_LA	t9, lowlevel_init
-	jalr	t9
-	 nop
-
-	/* Initialize caches... */
-	PTR_LA	t9, mips_cache_reset
 	jalr	t9
 	 nop
 #endif

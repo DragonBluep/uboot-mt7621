@@ -72,6 +72,7 @@ typedef struct mpll_ddr_config {
 	int dram_speed;
 	int cpu_speed;
 	int mpll_3pll;
+	int dram_speed_tune;
 
 	ddr_init_type_t init_type;
 

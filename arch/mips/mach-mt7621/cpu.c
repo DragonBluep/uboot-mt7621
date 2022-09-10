@@ -31,11 +31,11 @@ int print_cpuinfo(void)
 	printf("CPU:   MediaTek MT7621%cT ver %u, eco %u\n",
 	       core ? (pkg ? 'A' : 'N') : 'S', ver, eco);
 
-	mt7621_get_clocks(&cpu_clk, &bus_clk, &xtal_clk);
-	ddr_clk = mempll_get_clock();
+	mt7621_get_clocks(&cpu_clk, &bus_clk, &ddr_clk, &xtal_clk);
 
-	printf("Clocks: CPU: %dMHz, DDR: %dMHz, Bus: %dMHz, XTAL: %dMHz\n",
-		cpu_clk / 1000000, ddr_clk / 1000000, bus_clk / 1000000, xtal_clk / 1000000);
+	printf("Clocks: CPU: %dMHz, DDR: %dMHz (%dMT/s), Bus: %dMHz, XTAL: %dMHz\n",
+		cpu_clk / 1000000, ddr_clk / 1000000, ddr_clk / 500000,
+		bus_clk / 1000000, xtal_clk / 1000000);
 
 	return 0;
 }

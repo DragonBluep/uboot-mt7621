@@ -23,8 +23,7 @@ config SOC_MT7621
 	  Support MediaTek MT7621 SoC.
 
 config SYS_TEXT_BASE
-	default 0xbfc00000 if !SPL
-	default 0x80200000 if SPL
+	default 0x80200000
 
 config START_S_PATH
 	string
@@ -36,12 +35,11 @@ config SPL_START_S_PATH
 
 config SPL_TEXT_BASE
 	hex
-	default 0xbfc00000 if SPI_BOOT && !TPL
-	default 0x80100000 if NAND_BOOT || TPL
+	default 0x80100000
 
 config TPL_TEXT_BASE
 	hex
-	default 0xbfc00000 if SPI_BOOT
+	default 0xbfc00000
 
 choice
 	prompt "Board select"
@@ -60,7 +58,6 @@ config SPL_ALIGN_TO
 	hex "SPL alignment size"
 	default 0x10000 if SPI_BOOT
 	default 0x20000 if NAND_BOOT
-	depends on SPL
 	help
 	  Pad the SPL part to the closest size which is aligned with
 	  this size.
@@ -70,7 +67,6 @@ config MAX_U_BOOT_SIZE
 	hex "Maximum U-Boot size"
 	default 0x30000 if SPI_BOOT
 	default 0x80000 if NAND_BOOT
-	depends on SPL
 	help
 	  Maximum U-Boot size for SPL to search for the U-Boot SPL image
 
@@ -88,6 +84,12 @@ config MT7621_SINGLE_VPE
 	depends on MACH_MT7621
 	default n
 
+config MT7621_LEGACY_DRAMC_BIN
+	bool "Use legacy DDR initialization"
+	depends on MACH_MT7621
+	default n
+
+source "arch/mips/mach-mt7621/dramc-legacy/Kconfig"
 source "arch/mips/mach-mt7621/dramc/Kconfig"
 
 

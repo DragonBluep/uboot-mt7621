@@ -12,6 +12,11 @@ obj-y += cps.o
 obj-y += launch.o
 obj-y += launch_ll.o
 
+ifeq ($(CONFIG_MT7621_LEGACY_DRAMC_BIN), y)
+obj-y += dramc-legacy/
+else
 obj-y += dramc/
+endif
+
 obj-$(CONFIG_SPL_BUILD) += spl/
 obj-$(CONFIG_MT7621_MEMTEST) += memtest/
