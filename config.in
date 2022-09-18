@@ -1309,13 +1309,12 @@ if [ "$MT7621_DDR_400MHZ" = "y" ]; then
     define_hex  MT7621_DDR_SPEED    41
 fi
 
-#choice 'CPU Frequency' " 880Mhz MT7621_CPU_880MHZ \
-#						875Mhz MT7621_CPU_875MHZ \
-#		   				800Mhz MT7621_CPU_800MHZ \
-#						500Mhz MT7621_CPU_500MHZ \
-#						50Mhz MT7621_CPU_50MHZ"
-#						800Mhz
-define_bool MT7621_CPU_880MHZ y
+choice 'CPU Frequency' " 880Mhz MT7621_CPU_880MHZ \
+						875Mhz MT7621_CPU_875MHZ \
+		   				800Mhz MT7621_CPU_800MHZ \
+						500Mhz MT7621_CPU_500MHZ \
+						50Mhz MT7621_CPU_50MHZ"
+						800Mhz
 
 if [ "$MT7621_CPU_900MHZ" = "y" ]; then
     define_hex  MT7621_CPU_FREQUENCY    384
@@ -1343,7 +1342,7 @@ comment ""
 define_bool PDMA_NEW y
 define_bool RX_SCATTER_GATTER_DMA y
 
-#bool "Tiny Uboot" CONFIG_TINY_UBOOT
+bool "Tiny Uboot" CONFIG_TINY_UBOOT
 
 if [ "$ON_BOARD_SPI_FLASH_COMPONENT" == "y" ]; then
 choice 'Ram/Rom version' "RAM UBOOT_RAM \
@@ -1512,7 +1511,10 @@ if [ "$MT7628_CPU_PLL_PARAMETERS" = "y" ]; then
 fi
 
 bool "Dual Image" DUAL_IMAGE_SUPPORT
+
 bool "ETH One Port Only" ETH_ONE_PORT_ONLY
+
+bool "Secure Image Signature" CONFIG_SECURE
 
 if [ "$ETH_ONE_PORT_ONLY" = "n" ]; then
 bool "Partition LAN/WAN" LAN_WAN_PARTITION

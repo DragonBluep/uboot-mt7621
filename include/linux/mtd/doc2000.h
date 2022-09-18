@@ -2,7 +2,7 @@
 /* Linux driver for Disk-On-Chip 2000       */
 /* (c) 1999 Machine Vision Holdings, Inc.   */
 /* Author: David Woodhouse <dwmw2@mvhi.com> */
-/* $Id: //WIFI_SOC/MP/SDK_4_3_0_0/Uboot/include/linux/mtd/doc2000.h#1 $ */
+/* $Id: //WIFI_SOC/MP/SDK_5_0_0_0/Uboot/include/linux/mtd/doc2000.h#1 $ */
 
 #ifndef __MTD_DOC2000_H__
 #define __MTD_DOC2000_H__

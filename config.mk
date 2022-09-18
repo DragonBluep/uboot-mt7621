@@ -29,6 +29,7 @@ RALINK_SDR_PRECHARGE_POWER_DOWN = OFF		   # for mt7620, it is already enabled by
 RALINK_DDR_SELF_REFRESH_POWER_SAVE_MODE = OFF	   # for mt7620, it is already enabled by default.
 RALINK_SPI_UPGRADE_CHECK = ON
 RALINK_NAND_UPGRADE_CHECK = OFF
+RALINK_HTTP_UPGRADE_FUN = OFF
 ifeq ($(ON_BOARD_NAND_FLASH_COMPONENT),y)
 ifeq ($(MT7621_ASIC_BOARD),y)
 RALINK_RW_RF_REG_FUN = OFF
@@ -38,9 +39,10 @@ endif
 else
 RALINK_RW_RF_REG_FUN = ON
 endif
+RALINK_USB = OFF
+MTK_XHCI = OFF
 RALINK_EHCI = OFF
 RALINK_OHCI = OFF
-MTK_XHCI = OFF
 RALINK_SSO_TEST_FUN = OFF
 RALINK_VITESSE_SWITCH_CONNECT_SPI_CS1 = OFF
 RALINK_SPI_CS0_HIGH_ACTIVE = OFF
@@ -58,7 +60,7 @@ RALINK_SWITCH_DEBUG_FUN = OFF
 # Optimized for Size flag
 ###################################
 ifeq ($(ON_BOARD_NAND_FLASH_COMPONENT),y)
-RALINK_UPGRADE_BY_SERIAL = OFF
+RALINK_UPGRADE_BY_SERIAL = ON
 else
 RALINK_UPGRADE_BY_SERIAL = ON
 endif
@@ -84,6 +86,13 @@ CONFIG_GZIP = OFF
 CONFIG_BZIP2 = OFF
 CONFIG_LZMA = ON
 CONFIG_XZ = OFF
+
+##############################
+# Secure Signature
+##############################
+ifeq ($(CONFIG_SECURE), y)
+CONFIG_SECURE = ON
+endif
 
 ##########################################################################
 
@@ -256,6 +265,10 @@ ifeq ($(RALINK_NAND_UPGRADE_CHECK),ON)
 CPPFLAGS += -DRALINK_NAND_UPGRADE_CHECK
 endif
 
+ifeq ($(RALINK_HTTP_UPGRADE_FUN),ON)
+CPPFLAGS += -DRALINK_HTTP_UPGRADE_FUN
+endif
+
 ifeq ($(RALINK_RW_RF_REG_FUN),ON)
 CPPFLAGS += -DRALINK_RW_RF_REG_FUN
 endif
@@ -302,6 +315,10 @@ endif
 
 ifeq ($(CONFIG_XZ),ON)
 CPPFLAGS += -DCONFIG_XZ
+endif
+
+ifeq ($(CONFIG_SECURE),ON)
+CPPFLAGS += -DCONFIG_SECURE
 endif
 
 ifeq ($(RALINK_OHCI),ON)
@@ -740,7 +757,7 @@ CFG_ENV_IS := IN_FLASH
 endif
 endif
 CPPFLAGS += -DCFG_ENV_IS_$(CFG_ENV_IS)
-
+	
 ifdef BUILD_TAG
 CFLAGS := $(CPPFLAGS) -Wall -Wstrict-prototypes \
 	-DBUILD_TAG='"$(BUILD_TAG)"'

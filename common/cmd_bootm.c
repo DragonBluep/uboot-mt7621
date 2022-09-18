@@ -111,6 +111,14 @@ image_header_t *fake_header(image_header_t *hdr, void *ptr, int size);
 #define IH_TYPE_STANDALONE_SUPPORT
 #define CONFIG_NONE
 
+#ifdef CONFIG_SECURE
+#include <cyassl/rsa.h>
+#include <cyassl/sha256.h>
+
+#define SHA256_SIG_SIZE 256
+#define PUBLIC_KEY_SIZE 294
+#endif
+
 /*
  *  Continue booting an OS image; caller already has:
  *  - copied image header to global variable `header'
@@ -158,18 +166,169 @@ extern void lynxkdi_boot( image_header_t * );
 #endif
 
 image_header_t header;
-ulong load_addr =  CFG_LOAD_ADDR;		/* Default Load Address */
+unsigned int load_addr = 0x80200000;	/* Default Load Address */
 
 static inline void mips_cache_set(u32 v)
 {
 	asm volatile ("mtc0 %0, $16" : : "r" (v));
 }
 
+#ifdef CONFIG_SECURE
+static char SecureImageDecode(char *secure_image, int simage_len, RsaKey *key)
+{	
+	/* check signature */
+	Sha256 sha;
+	char *input;
+	char plain[SHA256_SIG_SIZE], hash[SHA256_DIGEST_SIZE];
+	int ret = 0;
 
+	/* calculate hash */
+	input = secure_image + SHA256_SIG_SIZE;
+	InitSha256 (&sha);
+	Sha256Update (&sha, (const byte *)input, simage_len - SHA256_SIG_SIZE);
+	Sha256Final (&sha, (byte *)hash);
+
+	/* verify signature of image */
+	memset (plain, 0, sizeof(plain));
+	ret = RsaSSL_Verify ((const byte*)secure_image, SHA256_SIG_SIZE, (byte *)plain, sizeof(plain), key);
+
+	printf("\n");
+
+	if (memcmp (plain, hash, ret)) {
+		printf("   ## RsaSSL_Verify failed ##\n");
+		return false;
+	} else
+		printf("   ## RsaSSL_Verify succeed ##\n");
+
+	memset(secure_image, 0, simage_len);
+	
+	return true;
+}
+
+static char *LoadPublicKey(ulong simage_addr)
+{
+	char *key_ptr = NULL;
+	ulong pubkey_addr;
+	
+	pubkey_addr = simage_addr + SHA256_SIG_SIZE;
+	
+	key_ptr = malloc(PUBLIC_KEY_SIZE);
+	if (!key_ptr) {
+		printf("Can't alloc memory for key, len: %d\n", PUBLIC_KEY_SIZE);
+		return NULL;
+	}
+	
+	memset(key_ptr, 0, PUBLIC_KEY_SIZE);
+	
+#if defined(CFG_ENV_IS_IN_NAND)
+	if (pubkey_addr >= CFG_FLASH_BASE)
+		ranand_read(key_ptr, (char *)(pubkey_addr - CFG_FLASH_BASE), PUBLIC_KEY_SIZE);
+	else
+		memmove(key_ptr, (char *)pubkey_addr, PUBLIC_KEY_SIZE);
+#elif defined(CFG_ENV_IS_IN_SPI)
+	if (pubkey_addr >= CFG_FLASH_BASE)
+		raspi_read(key_ptr, (char *)(pubkey_addr - CFG_FLASH_BASE), PUBLIC_KEY_SIZE);
+	else
+		memmove(key_ptr, (char *)pubkey_addr, PUBLIC_KEY_SIZE);
+#else
+	memmove(key_ptr, (char *)pubkey_addr, PUBLIC_KEY_SIZE);
+#endif
+	
+    return key_ptr;
+}
+
+static char *LoadSecureImage(ulong simage_addr, int simage_len)
+{
+	char *simage_ptr = NULL;
+	
+	simage_ptr = (char *)CFG_SPINAND_LOAD_ADDR;
+
+#if defined(CFG_ENV_IS_IN_NAND)
+	if (simage_addr >= CFG_FLASH_BASE)
+		ranand_read(simage_ptr, (char *)(simage_addr - CFG_FLASH_BASE), simage_len);
+	else
+		memmove(simage_ptr, (char *)simage_addr, simage_len);
+#elif defined(CFG_ENV_IS_IN_SPI)
+	if (simage_addr >= CFG_FLASH_BASE)
+		raspi_read(simage_ptr, (char *)(simage_addr - CFG_FLASH_BASE), simage_len);
+	else
+		memmove(simage_ptr, (char *)simage_addr, simage_len);
+#else
+	memmove(simage_ptr, (char *)simage_addr, simage_len);
+#endif
+
+    return simage_ptr;
+}
+
+static int GetSimageSize(ulong simage_addr)
+{
+	ulong mkhdr_addr;
+	int image_size;
+	image_header_t mkimage_hdr;
+	
+	mkhdr_addr = simage_addr + SHA256_SIG_SIZE + PUBLIC_KEY_SIZE;
+
+#if defined(CFG_ENV_IS_IN_NAND)
+	if (mkhdr_addr >= CFG_FLASH_BASE)
+		ranand_read(&mkimage_hdr, (char *)(mkhdr_addr - CFG_FLASH_BASE), sizeof(image_header_t));
+	else
+		memmove(&mkimage_hdr, (char *)mkhdr_addr, sizeof(image_header_t));
+#elif defined(CFG_ENV_IS_IN_SPI)
+	if (mkhdr_addr >= CFG_FLASH_BASE)
+		raspi_read(&mkimage_hdr, (char *)(mkhdr_addr - CFG_FLASH_BASE), sizeof(image_header_t));
+	else
+		memmove(&mkimage_hdr, (char *)mkhdr_addr, sizeof(image_header_t));
+#else
+	memmove(&mkimage_hdr, (char *)mkhdr_addr, sizeof(image_header_t));
+#endif
+
+	image_size = SHA256_SIG_SIZE + PUBLIC_KEY_SIZE + sizeof(image_header_t) + ntohl(mkimage_hdr.ih_size);
+
+    return image_size;
+}
+
+static char SecureImageCheck(ulong simage_addr)
+{
+    char res = false, check_sec = false;
+    char *key_buf = NULL, *simage_buf = NULL;
+    int err = 0, simage_len = 0;
+    RsaKey pubkey;
+    u32 idx = 0;
+	
+	simage_len = GetSimageSize(simage_addr);
+	
+	/* check if need security */
+	key_buf = LoadPublicKey(simage_addr);
+	if (key_buf != NULL) {
+        InitRsaKey (&pubkey, 0);
+        if ((err = RsaPublicKeyDecode((const byte*)key_buf, &idx, &pubkey, PUBLIC_KEY_SIZE)) < 0) {
+            printf("Decode public failed, err: %d\n", err);
+			free(key_buf);
+            return false;
+        }
+        //printf("   rsa public key: type: %d, n: 0x%x, e: 0x%x\n", pubkey.type, *pubkey.n.dp, *pubkey.e.dp);
+        check_sec = true;
+        free(key_buf);
+    }
+	
+	simage_buf = LoadSecureImage(simage_addr, simage_len);
+	if ((simage_buf != NULL) && check_sec)
+		res = SecureImageDecode(simage_buf, simage_len, &pubkey);
+
+	if (!res)
+		for(;;)
+			printf("   ## Check signature image failed ##\n"); 
+	
+    return res;
+}
+#endif
 
 int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	ulong	addr;
+#ifdef CONFIG_SECURE
+	ulong	secure_addr;
+#endif
 	ulong	data, len, checksum;
 	ulong  *len_ptr;
 	uint	unc_len = 0x800000;
@@ -178,8 +337,6 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	int	(*appl)(int, char *[]);
 	image_header_t *hdr = &header;
 
-
-	//mips_cache_set(3);
 
 	s = getenv ("verify");
 	verify = (s && (*s == 'n')) ? 0 : 1;
@@ -190,7 +347,6 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		addr = simple_strtoul(argv[1], NULL, 16);
 	}
 
-	
 	SHOW_BOOT_PROGRESS (1);
 	printf ("## Booting image at %08lx ...\n", addr);
 
@@ -208,6 +364,14 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		}
 		saveenv();
 	}
+#endif
+
+#ifdef CONFIG_SECURE
+	if(SecureImageCheck(addr))
+		printf("   ## Check signature image successes ##\n"); 
+		printf("\n");
+
+	addr += (SHA256_SIG_SIZE + PUBLIC_KEY_SIZE);
 #endif
 
    /* YJ, 5/16/2006 */
@@ -244,6 +408,7 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	memmove (&header, (char *)addr, sizeof(image_header_t));
 #endif //CFG_ENV_IS_IN_FLASH
 
+	
 	if (ntohl(hdr->ih_magic) != IH_MAGIC) {
 #ifdef __I386__	/* correct image format not implemented yet - fake it */
 		if (fake_header(hdr, (void*)addr, -1) != NULL) {
@@ -256,7 +421,7 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		} else
 #endif	/* __I386__ */
 	    {
-		printf ("Bad Magic Number,%08X \n",ntohl(hdr->ih_magic));
+			printf ("Bad Magic Number,%08X \n",ntohl(hdr->ih_magic));
 #if defined (CFG_ENV_IS_IN_NAND)
 			addr += CFG_BLOCKSIZE;
 			if ((addr-CFG_FLASH_BASE) < 0x2000000) /* Suppose minimum NAND flash size 32MB */
@@ -267,10 +432,10 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			else
 #endif				
 			{	
-		SHOW_BOOT_PROGRESS (-1);
-		return 1;
+				SHOW_BOOT_PROGRESS (-1);
+				return 1;
+			}
 	    }
-	}
 	}
 	break;
 	}while (1);
@@ -304,13 +469,13 @@ int do_bootm (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 #if defined (CFG_ENV_IS_IN_NAND)
 	if (addr >= CFG_FLASH_BASE) {
-		ulong load_addr = CFG_SPINAND_LOAD_ADDR;
+		//unsigned int load_addr = CFG_SPINAND_LOAD_ADDR;
 		ranand_read(load_addr, data - CFG_FLASH_BASE, len);
 		data = load_addr;
 	}
 #elif defined (CFG_ENV_IS_IN_SPI)
 	if (addr >= CFG_FLASH_BASE) {
-		ulong load_addr = CFG_SPINAND_LOAD_ADDR;
+		//unsigned int load_addr = CFG_SPINAND_LOAD_ADDR;
 		raspi_read(load_addr, data - CFG_FLASH_BASE, len);
 		data = load_addr;
 	}

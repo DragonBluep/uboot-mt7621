@@ -2211,20 +2211,6 @@ tRFCinit:
         nop
         sw t6, 0(t5)
         nop
-#if defined(MT7620_ASIC_BOARD) || defined(MT7620_FPGA_BOARD)
-#if 0	// set GPIO36(PERST_N) to output mode and pull low
-	li	t0, RALINK_PIO_BASE + 0x4C
-	lw	t1, 0(t0)
-	li	t2, 1<<12
-	or	t1, t1, t2
-	sw	t1, 0(t0)
-	li	t0, RALINK_PIO_BASE + 0x48
-	lw	t1, 0(t0)
-	li	t2, ~(1<<12)
-	and	t1, t1, t2
-	sw	t1, 0(t0)
-#endif
-#endif
 		
 #if defined(RT3052_ASIC_BOARD) || defined (RT3052_FPGA_BOARD)
 #if defined(ON_BOARD_16BIT_DRAM_BUS)
@@ -2397,7 +2383,7 @@ tRFCinit:
 	nop
 	bal		fill_icache
 	nop
-	li		sp, 0x89000000+0x1F00
+	li		sp, 0x89000000+0x2F00
 #endif	
 #endif	
 	la	t9, board_init_f
@@ -2976,7 +2962,7 @@ DDR2_CFG4_TBL:
 lock_dcache:
 		lui	$14, 0x8900		# Get a KSeg0 address for cacheops
 		move	$12, $14
-		li		$10, 4
+		li		$10, 4*1
 2:	
 		# Set TagLo registers
 		li	$13, 0x1FFFF800
@@ -2984,16 +2970,16 @@ lock_dcache:
 		ori	$13, $13, (0x1<<5)|(0x1<<7)
 		mtc0	$13, $28, 2
 		move	$9, $12
-		li	$15, 64
+		li	$15, 128
 		li	$11, 32
 		# Index Store Tag Cache Op
-		# Will invalidate the tag entry, clear the lock bit, and clear the LRF bit
+		# Will validate the tag entry, set the lock bit
 1:	cache	0x9, 0($9)
 		add	$15, -1			# Decrement set counter
 		bne	$15, $0, 1b
 		add	$9, $11		# Get next line address
 				
-		addiu	$12, 0x800
+		addiu	$12, 0x1000
 		subu	$10, 1
 		bgtz	$10, 2b
 		nop
@@ -3002,34 +2988,37 @@ lock_dcache:
 		jr		ra
 		nop
 		.end	lock_dcache
-		
-		/* === unlock d$ === */	
-		.globl	unlock_dcache
-		.ent	unlock_dcache
+
+        .globl  unlock_dcache
+        .ent    unlock_dcache
 unlock_dcache:
-		lui	$14, 0x8000		# Get a KSeg0 address for cacheops
-		move	$12, $14
-		li		$10, 4
-2:	
-		# Clear TagLo/TagHi registers
-		mtc0	$0, $28, 2
-		move	$9, $12
-		li	$15, 64
-		li	$11, 32
-		# Index Store Tag Cache Op
-		# Will invalidate the tag entry, clear the lock bit, and clear the LRF bit
-1:	cache	0x9, 0($9)
-		add	$15, -1			# Decrement set counter
-		bne	$15, $0, 1b
-		add	$9, $11		# Get next line address		
-		
-		subu	$10, 1
-		bgtz	$10, 2b
-		nop
-		jr		ra
-		nop
-		
-		.end	unlock_dcache
+        lui $14, 0x8900     # Get a KSeg0 address for cacheops
+        move    $12, $14
+        li      $10, 4*1
+2:
+        # Set TagLo registers
+        li  $13, 0x1FFFF800
+        and $13, $13, $12
+        mtc0    $13, $28, 2
+        move    $9, $12
+        li  $15, 128
+        li  $11, 32
+        # Index Store Tag Cache Op
+        # Will invalidate the tag entry, clear the lock bit, and clear the LRF bit
+1:  cache   0x9, 0($9)
+        add $15, -1         # Decrement set counter
+        bne $15, $0, 1b
+        add $9, $11     # Get next line address
+
+        addiu   $12, 0x1000
+		subu    $10, 1
+        bgtz    $10, 2b
+        nop
+        jr      ra
+        nop
+        jr      ra
+        nop
+        .end    unlock_dcache
 
 		/* === fill I$ === */			
 		.globl	fill_icache

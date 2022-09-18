@@ -261,6 +261,7 @@ static struct chip_info chips_data [] = {
 	{ "S25FL132K",          0x01, 0x40160140, 64 * 1024, 64,  0 },
 	{ "S25FL032P",          0x01, 0x02154D00, 64 * 1024, 64,  0 },
 	{ "S25FL064P",          0x01, 0x02164D00, 64 * 1024, 128, 0 },
+	{ "S25FL064L",          0x01, 0x60170000, 64 * 1024, 128, 0 },
 	{ "S25FL116K",          0x01, 0x40150140, 64 * 1024, 32,  0 },
 	{ "F25L64QA",           0x8c, 0x41170000, 64 * 1024, 128, 0 }, //ESMT
 	{ "F25L32QA",           0x8c, 0x41168c41, 64 * 1024, 64,  0 }, //ESMT
@@ -724,6 +725,7 @@ static int raspi_read_scur(u8 *val)
 	return 0;
 }
 
+static inline int raspi_write_enable(void);
 static int raspi_4byte_mode(int enable)
 {
 	ssize_t retval;
@@ -808,7 +810,7 @@ static int raspi_4byte_mode(int enable)
 		// for Winbond's W25Q256FV, need to clear extend address register
 		if ((!enable) && (spi_chip_info->id == 0xef))
 		{
-			u8 code = 0x0;
+			code = 0x0;
 			raspi_write_enable();
 			raspi_write_rg(0xc5, &code);
 		}
@@ -1464,6 +1466,7 @@ int do_mem_cp(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	unsigned int addr, dest;
 	int count;
+	DECLARE_GLOBAL_DATA_PTR;
 
 	addr = CFG_LOAD_ADDR;
 	count = (unsigned int)NetBootFileXferSize;

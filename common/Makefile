@@ -49,7 +49,6 @@ ifeq ($(MTK_USB),ON)
 COBJS += usb.o usb_storage.o cmd_usb.o cmd_fat.o
 endif
 
-
 OBJS	= $(AOBJS) $(COBJS)
 
 ifeq ($(CFG_ENV_IS), IN_FLASH)

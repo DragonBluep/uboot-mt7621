@@ -34,6 +34,9 @@ ifeq ($(MT7621_FPGA_BOARD), y)
 COBJS	+= ddr_init.o
 endif
 endif
+ifeq ($(MT7620_MP), y)
+COBJS	+= ashldi3.o ashrdi3.o lshrdi3.o
+endif
 
 OBJS	= $(AOBJS) $(COBJS)
 

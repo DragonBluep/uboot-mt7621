@@ -206,6 +206,9 @@ endif
 
 #LIBS += post/libpost.a post/cpu/libcpu.a
 LIBS += common/libcommon.a
+ifeq ($(RALINK_HTTP_UPGRADE_FUN),ON)
+LIBS += uip/libuip.a
+endif
 .PHONY : $(LIBS)
 
 # Add GCC lib

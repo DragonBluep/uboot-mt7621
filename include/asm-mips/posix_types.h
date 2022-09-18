@@ -1,4 +1,4 @@
-/* $Id: //WIFI_SOC/MP/SDK_4_3_0_0/Uboot/include/asm-mips/posix_types.h#1 $
+/* $Id: //WIFI_SOC/MP/SDK_5_0_0_0/Uboot/include/asm-mips/posix_types.h#1 $
  *
  * This file is subject to the terms and conditions of the GNU General Public
  * License.  See the file "COPYING" in the main directory of this archive

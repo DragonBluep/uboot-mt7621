@@ -88,7 +88,8 @@
 #if defined(RD_MODE_QOR) || defined(RD_MODE_QIOR)
 #define RD_MODE_QUAD
 #endif
-
+static int raspi_write_enable(void);
+static int raspi_write_disable(void);
 static int raspi_wait_ready(int sleep_ms);
 static unsigned int spi_wait_nsec = 0;
 
@@ -682,7 +683,7 @@ static int raspi_4byte_mode(int enable)
  * Set write enable latch with Write Enable command.
  * Returns negative if error occurred.
  */
-static inline int raspi_write_enable(void)
+static int raspi_write_enable(void)
 {
 	u8 code = OPCODE_WREN;
 
@@ -693,7 +694,7 @@ static inline int raspi_write_enable(void)
 #endif
 }
 
-static inline int raspi_write_disable(void)
+static int raspi_write_disable(void)
 {
 	u8 code = OPCODE_WRDI;
 
@@ -1305,6 +1306,7 @@ int do_mem_cp(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 	unsigned int addr, dest;
 	int count;
 
+	DECLARE_GLOBAL_DATA_PTR;
 	addr = CFG_LOAD_ADDR;
 	count = (unsigned int)NetBootFileXferSize;
 

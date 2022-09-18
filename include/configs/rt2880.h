@@ -166,14 +166,14 @@ extern unsigned int  CFG_BLOCKSIZE;
  * for TEST 
  */
 #define CFG_CONSOLE_INFO_QUIET	
+#define	CFG_LOAD_ADDR		(CFG_SDRAM_BASE + (gd->ram_size)/2)	/* default load address	*/
 
 #if defined (RT2880_FPGA_BOARD) || defined (RT2880_ASIC_BOARD)
-#define	CFG_LOAD_ADDR		0x8A100000	/* default load address	*/
-
+#define CFG_HTTP_DL_ADDR	0x8A300000
 #define CFG_MEMTEST_START	0x8A100000
 #define CFG_MEMTEST_END		0x8A400000
 #else
-#define	CFG_LOAD_ADDR		0x80100000	/* default load address	*/
+#define CFG_HTTP_DL_ADDR	0x80300000
 #if defined(RT6855A_FPGA_BOARD) || defined(RT6855A_ASIC_BOARD) || defined(MT7620_FPGA_BOARD) || defined(MT7620_ASIC_BOARD) || defined(MT7628_FPGA_BOARD) || defined(MT7628_ASIC_BOARD)
 #define CFG_SPINAND_LOAD_ADDR	0x80c00000
 #else

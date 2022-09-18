@@ -186,6 +186,9 @@ uchar 		NetArpWaitPacketBuf[PKTSIZE_ALIGN + PKTALIGN];
 ulong		NetArpWaitTimerStart;
 int		NetArpWaitTry;
 
+#ifdef RALINK_HTTP_UPGRADE_FUN
+int		NetUipLoop = 0;
+#endif
 
 
 //===================================================
@@ -296,34 +299,6 @@ NetLoop(proto_t protocol)
 #ifdef DEBUG	
    printf("File: %s, Func: %s, Line: %d\n", __FILE__,__FUNCTION__ , __LINE__);
 #endif   
-//
-	if (!NetTxPacket) {
-		int	i;
-		BUFFER_ELEM *buf;
-		/*
-		 *	Setup packet buffers, aligned correctly.
-		 */
-		buf = rt2880_free_buf_entry_dequeue(&rt2880_free_buf_list); 
-		NetTxPacket = buf->pbuf;
-
-		debug("\n NetTxPacket = 0x%08X \n",NetTxPacket);
-		for (i = 0; i < NUM_RX_DESC; i++) {
-
-			buf = rt2880_free_buf_entry_dequeue(&rt2880_free_buf_list); 
-			if(buf == NULL)
-			{
-				printf("\n Packet Buffer is empty ! \n");
-
-				return (-1);
-			}
-			NetRxPackets[i] = buf->pbuf;
-			//printf("\n NetRxPackets[%d] = 0x%08X\n",i,NetRxPackets[i]);
-		}
-	}
-	
-	NetTxPacket = KSEG1ADDR(NetTxPacket);
-
-	printf("\n KSEG1ADDR(NetTxPacket) = 0x%08X \n",NetTxPacket);
 
 	if (!NetArpWaitTxPacket) {
 		NetArpWaitTxPacket = &NetArpWaitPacketBuf[0] + (PKTALIGN - 1);
@@ -1163,6 +1138,10 @@ NetReceive(volatile uchar * inpkt, int len)
 	NetRxPktLen = len;
 	et = (Ethernet_t *)inpkt;
 
+#ifdef RALINK_HTTP_UPGRADE_FUN
+	if (NetUipLoop == 1)
+		return;
+#endif
 
 	/* too small packet? */
 	if (len < ETHER_HDR_SIZE)

@@ -19,7 +19,7 @@
  *    along with this program; if not, write to the Free Software
  *    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  */
-#ident "$Id: //WIFI_SOC/MP/SDK_4_3_0_0/Uboot/include/systemace.h#1 $"
+#ident "$Id: //WIFI_SOC/MP/SDK_5_0_0_0/Uboot/include/systemace.h#1 $"
 
 #ifdef CONFIG_SYSTEMACE
 

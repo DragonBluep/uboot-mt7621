@@ -63,7 +63,8 @@ static int rt_set_host(void)
  */
 int ehci_hcd_init(void)
 {
-#if defined(RT3352_ASIC_BOARD) || defined(RT3883_ASIC_BOARD) || defined(RT5350_ASIC_BOARD) || defined(MT7620_ASIC_BOARD)|| defined(MT7628_ASIC_BOARD)
+
+#if defined(RT3352_ASIC_BOARD) || defined(RT3883_ASIC_BOARD) || defined(RT5350_ASIC_BOARD) || defined(MT7620_ASIC_BOARD) || defined(MT7628_ASIC_BOARD)
 	printf("*********ehci_hcd_init**********\n");
 	leave_power_saving();
 	mdelay(100);
@@ -77,6 +78,7 @@ int ehci_hcd_init(void)
 	printf("Mediatek/Ralink USB EHCI host init hccr %x and hcor %x hc_length %d\n", (uint32_t)hccr, (uint32_t)hcor, (uint32_t)HC_LENGTH(ehci_readl(&hccr->cr_capbase)));
 	return 0;
 #else
+	
 	return -1;
 #endif
 }

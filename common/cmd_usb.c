@@ -321,6 +321,8 @@ void usb_show_tree(struct usb_device *dev)
 #ifdef CONFIG_USB_STORAGE
 int do_usbboot (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
+	DECLARE_GLOBAL_DATA_PTR;
+
 	char *boot_device = NULL;
 	char *ep;
 	int dev, part=1, rcode;

@@ -369,7 +369,7 @@ int sprintf(char * buf, const char *fmt, ...)
 	return i;
 }
 
-#if 1
+#if 0
 void panic(const char *fmt, ...)
 {
 	va_list	args;

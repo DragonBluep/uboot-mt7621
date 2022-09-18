@@ -3,10 +3,13 @@
 #include <rt_mmap.h>
 #include <configs/rt2880.h>
 
-
+#if defined (CONFIG_MIPS16)
+#define outw(address, value)    *((volatile uint32_t *)(address)) = (value)
+#define inw(address)            (*(volatile u32 *)(address))
+#else
 #define outw(address, value)    *((volatile uint32_t *)(address)) = cpu_to_le32(value)
 #define inw(address)            le32_to_cpu(*(volatile u32 *)(address))
-
+#endif
 #if defined (RT3052_FPGA_BOARD) || defined (RT3052_ASIC_BOARD) || \
     defined (RT3352_FPGA_BOARD) || defined (RT3352_ASIC_BOARD) || \
     defined (RT5350_FPGA_BOARD) || defined (RT5350_ASIC_BOARD) || \
