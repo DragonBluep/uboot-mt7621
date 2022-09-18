@@ -1,0 +1,14 @@
+*.o
+*.a
+autoconf.h
+*.map
+*.depend
+.tmp_config
+tools/mkimage
+u-boot
+u-boot.srec
+uboot.bin
+uboot.img
+.config
+.config.old
+scripts/lxdialog/lxdialog
