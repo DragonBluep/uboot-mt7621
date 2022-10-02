@@ -6,6 +6,7 @@
  */
 
 #include <common.h>
+#include "gpio.h"
 
 struct mtk_bootmenu_entry {
 	const char *desc;
@@ -38,6 +39,13 @@ static int do_mtkautoboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	char cmd[32];
 	const char *delay_str;
 	u32 delay = CONFIG_MTKAUTOBOOT_DELAY;
+
+#ifdef CONFIG_WEBUI_FAILSAFE_ON_BUTTON
+	if (mt7621_is_reset_pressed()) {
+		printf("Enter Failsafe Mode by Press Reset Button!\n");
+		run_command("httpd", 0);
+	}
+#endif // CONFIG_WEBUI_FAILSAFE_ON_BUTTON
 
 	for (i = 0; i < ARRAY_SIZE(bootmenu_entries); i++) {
 		snprintf(key, sizeof(key), "bootmenu_%d", i);

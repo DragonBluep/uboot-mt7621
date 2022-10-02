@@ -54,6 +54,123 @@ config BOARD_MT7621_NAND_RFB
 
 endchoice
 
+menu "MT7621 GPIO Pin Mapping"
+	depends on MACH_MT7621
+
+config MT7621_SYS_LED
+	bool "Enable System LED"
+	default y
+config MT7621_SYS_LED_PIN
+	int "System LED GPIO Pin Number"
+	depends on MT7621_SYS_LED
+config MT7621_SYS_LED_LEVEL
+	int "System LED Trigger Level"
+	depends on MT7621_SYS_LED
+	default 0
+	range 0 1
+	help
+	  0:low 1:high
+
+config MT7621_PWR_LED
+	bool "Enable Power LED"
+	default n
+config MT7621_PWR_LED_PIN
+	int "Power LED GPIO Pin Number"
+	depends on MT7621_PWR_LED
+config MT7621_PWR_LED_LEVEL
+	int "Power LED Trigger Level"
+	depends on MT7621_PWR_LED
+	default 0
+	range 0 1
+
+config MT7621_EXTRA_GPIO1
+	bool "Enable Init Extra GPIO 1"
+	default n
+config MT7621_EXTRA_GPIO1_PIN
+	int "Extra GPIO 1 Pin Number"
+	depends on MT7621_EXTRA_GPIO1
+config MT7621_EXTRA_GPIO1_LEVEL
+	int "Extra GPIO 1 Default Level"
+	depends on MT7621_EXTRA_GPIO1
+	default 1
+	range 0 1
+
+config MT7621_EXTRA_GPIO2
+	bool "Enable Init Extra GPIO 2"
+	default n
+config MT7621_EXTRA_GPIO2_PIN
+	int "Extra GPIO 2 Pin Number"
+	depends on MT7621_EXTRA_GPIO2
+config MT7621_EXTRA_GPIO2_LEVEL
+	int "Extra GPIO 2 Default Level"
+	depends on MT7621_EXTRA_GPIO2
+	default 1
+	range 0 1
+
+config MT7621_EXTRA_GPIO3
+	bool "Enable Init Extra GPIO 3"
+	default n
+config MT7621_EXTRA_GPIO3_PIN
+	int "Extra GPIO 3 Pin Number"
+	depends on MT7621_EXTRA_GPIO3
+config MT7621_EXTRA_GPIO3_LEVEL
+	int "Extra GPIO 3 Default Level"
+	depends on MT7621_EXTRA_GPIO3
+	default 1
+	range 0 1
+
+config MT7621_EXTRA_GPIO4
+	bool "Enable Init Extra GPIO 4"
+	default n
+config MT7621_EXTRA_GPIO4_PIN
+	int "Extra GPIO 4 Pin Number"
+	depends on MT7621_EXTRA_GPIO4
+config MT7621_EXTRA_GPIO4_LEVEL
+	int "Extra GPIO 4 Default Level"
+	depends on MT7621_EXTRA_GPIO4
+	default 1
+	range 0 1
+
+config MT7621_EXTRA_GPIO5
+	bool "Enable Init Extra GPIO 5"
+	default n
+config MT7621_EXTRA_GPIO5_PIN
+	int "Extra GPIO 5 Pin Number"
+	depends on MT7621_EXTRA_GPIO5
+config MT7621_EXTRA_GPIO5_LEVEL
+	int "Extra GPIO 5 Default Level"
+	depends on MT7621_EXTRA_GPIO5
+	default 1
+	range 0 1
+
+config MT7621_RST_BTN
+	bool "Enable Reset Button"
+	default y
+config MT7621_RST_BTN_PIN
+	int "Reset Button GPIO Pin Number"
+	depends on MT7621_RST_BTN
+config MT7621_RST_BTN_LEVEL
+	int "Reset Button Trigger Level"
+	depends on MT7621_RST_BTN
+	default 0
+	range 0 1
+	help
+	  0:low 1:high
+
+config MT7621_WPS_BTN
+	bool "Enable WPS Button"
+	default n
+config MT7621_WPS_BTN_PIN
+	int "WPS Button GPIO Pin Number"
+	depends on MT7621_WPS_BTN
+config MT7621_WPS_BTN_LEVEL
+	int "WPS Button Trigger Level"
+	depends on MT7621_WPS_BTN
+	default 0
+	range 0 1
+
+endmenu
+
 config SPL_ALIGN_TO
 	hex "SPL alignment size"
 	default 0x10000 if SPI_BOOT
