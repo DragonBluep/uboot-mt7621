@@ -961,7 +961,7 @@ int fit_image_get_data_and_size(const void *fit, int noffset,
 {
 	bool external_data = false;
 	int offset;
-	int len;
+	int len = 0;
 	int ret;
 
 	if (!fit_image_get_data_position(fit, noffset, &offset)) {
