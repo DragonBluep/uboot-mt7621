@@ -52,6 +52,14 @@ config BOARD_MT7621_NAND_RFB
 	bool "MT7621 reference board (NAND)"
 	select SOC_MT7621
 
+config BOARD_MT7621_NOR_TEMPLATE
+	bool "MT7621 Template for NOR Flash"
+	select SOC_MT7621
+
+config BOARD_MT7621_NAND_TEMPLATE
+	bool "MT7621 Template for NAND Flash"
+	select SOC_MT7621
+
 endchoice
 
 menu "MT7621 GPIO Pin Mapping"

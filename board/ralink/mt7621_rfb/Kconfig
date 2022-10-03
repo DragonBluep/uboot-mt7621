@@ -1,4 +1,4 @@
-if BOARD_MT7621_RFB
+if BOARD_MT7621_RFB || BOARD_MT7621_NOR_TEMPLATE
 
 config SYS_VENDOR
 	default "ralink"
