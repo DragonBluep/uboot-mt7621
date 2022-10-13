@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         options:
-        - 'SPI'
+        - 'NOR'
         - 'NAND'
         - 'NAND-NMBM'
       mtdparts:
@@ -37,7 +37,7 @@ on:
         type: number
         default: '880'
       ramfreq:
-        description: 'DRAM Frequency (MHz)'
+        description: 'DRAM Frequency'
         required: true
         type: choice
         options:
@@ -46,25 +46,27 @@ on:
         - '1066'
         - '1200'
         default: '800'
-      ddr2param:
-        description: 'Prefered DDR2 Init Parameters'
+      ddrparam:
+        description: 'Prefered DDR Init Parameters'
         required: true
         type: choice
         options:
-        - '64MiB'
-        - '128MiB'
-        - 'W9751G6KB-64MiB-1066MHz'
-        - 'W971GG6KB25-128MiB-800MHz'
-        - 'W971GG6KB18-128MiB-1066MHz'
-      ddr3param:
-        description: 'Prefered DDR3 Init Parameters'
+        - 'DDR2-64MiB'
+        - 'DDR2-128MiB'
+        - 'DDR2-W9751G6KB-64MiB-1066MHz'
+        - 'DDR2-W971GG6KB25-128MiB-800MHz'
+        - 'DDR2-W971GG6KB18-128MiB-1066MHz'
+        - 'DDR3-128MiB'
+        - 'DDR3-256MiB'
+        - 'DDR3-512MiB'
+        - 'DDR3-128MiB-KGD'
+      baudrate:
+        description: 'Baud Rate'
         required: true
         type: choice
         options:
-        - '128MiB'
-        - '128MiB-KGD'
-        - '256MiB'
-        - '512MiB'
+        - '57600'
+        - '115200'
 
 jobs:
   build:
@@ -96,7 +98,7 @@ jobs:
         working-directory: uboot-mt7621
         run: |
           ./customize.sh '${{ inputs.flash }}' '${{ inputs.mtdparts }}' '${{ inputs.kernel_offset }}' '${{ inputs.reset_pin }}' \
-            '${{ inputs.sysled_pin }}' '${{ inputs.cpufreq }}' '${{ inputs.ramfreq }}' '${{ inputs.ddr2param }}' '${{ inputs.ddr3param }}'
+            '${{ inputs.sysled_pin }}' '${{ inputs.cpufreq }}' '${{ inputs.ramfreq }}' '${{ inputs.ddrparam }}' '${{ inputs.baudrate }}'
 
       - name: Upload binaries
         uses: actions/upload-artifact@v3
