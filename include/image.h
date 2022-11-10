@@ -796,7 +796,13 @@ image_set_hdr_b(comp)		/* image_set_comp */
 
 static inline void image_set_name(image_header_t *hdr, const char *name)
 {
-	strncpy(image_get_name(hdr), name, IH_NMLEN);
+	/*
+	 * This is equivalent to: strncpy(image_get_name(hdr), name, IH_NMLEN);
+	 *
+	 * Use the tortured code below to avoid a warning with gcc 12. We do not
+	 * want to include a nul terminator if the name is of length IH_NMLEN
+	 */
+	memcpy(image_get_name(hdr), name, strnlen(name, IH_NMLEN));
 }
 
 int image_check_hcrc(const image_header_t *hdr);
