@@ -60,6 +60,11 @@ on:
         - 'DDR3-256MiB'
         - 'DDR3-512MiB'
         - 'DDR3-128MiB-KGD'
+      oldparam:
+        description: 'Use Old DDR Timing Parameters'
+        required: true
+        type: boolean
+        default: 'false'
       baudrate:
         description: 'Baud Rate'
         required: true
@@ -93,6 +98,11 @@ jobs:
         run: |
           wget -O - https://downloads.cdn.openwrt.org/releases/19.07.10/targets/ramips/mt7621/openwrt-sdk-19.07.10-ramips-mt7621_gcc-7.5.0_musl.Linux-x86_64.tar.xz \
             | tar --xz -xf -
+
+      - name: Set old DDR timing parameters
+        if:  ${{ inputs.oldparam }}
+        working-directory: uboot-mt7621
+        run: sed -i 's/0x0C000000/0x0A000000/g' ./arch/mips/mach-mt7621/dramc-legacy/dramc.S
 
       - name: Compile
         working-directory: uboot-mt7621
