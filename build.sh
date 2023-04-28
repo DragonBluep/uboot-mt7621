@@ -19,6 +19,8 @@ cd $(dirname "$0")
 Boards=( \
 	h3c_tx1801-plus \
 	h3c_tx1801-plus-nmbm \
+	raisecom_msg1500-x00 \
+	raisecom_msg1500-x00-nmbm \
 	)
 
 if [ ! -d "./bin" ]; then

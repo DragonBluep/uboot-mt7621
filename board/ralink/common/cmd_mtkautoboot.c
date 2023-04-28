@@ -17,6 +17,9 @@
 #if defined(CONFIG_BOARD_H3C_TX1801_PLUS)
 #define MT7621_BUTTON_RESET	13
 #define MT7621_BUTTON_WPS	14
+#elif defined(CONFIG_BOARD_RAISECOM_MSG1500X00)
+#define MT7621_BUTTON_RESET	15
+#define MT7621_BUTTON_WPS	18
 #endif
 
 struct mtk_bootmenu_entry {

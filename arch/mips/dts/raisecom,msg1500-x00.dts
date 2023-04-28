@@ -1,0 +1,93 @@
+// SPDX-License-Identifier: GPL-2.0+
+
+/dts-v1/;
+#include "mt7621.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "RAISECOM MSG1500 X.00";
+	compatible = "raisecom,msg1500-x00", "mediatek,mt7621-soc";
+
+	chosen {
+		stdout-path = &uartlite0;
+	};
+
+	config {
+		reset-button = "reset";
+		wps-button = "wps";
+		status1-led = "blue:usb";
+	};
+
+	keys {
+		compatible = "gpio-keys";
+
+		reset {
+			label = "reset";
+			gpios = <&gpio 15 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		};
+
+		wifi {
+			label = "wifi";
+			gpios = <&gpio 7 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RFKILL>;
+		};
+
+		wps {
+			label = "wps";
+			gpios = <&gpio 18 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_WPS_BUTTON>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led-usb {
+			label = "blue:usb";
+			gpios = <&gpio 13 GPIO_ACTIVE_LOW>;
+			default-state = "on";
+		};
+
+		led-wlan0 {
+			label = "blue:wlan-0";
+			gpios = <&gpio 4 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led-wlan1 {
+			label = "blue:wlan-1";
+			gpios = <&gpio 3 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+	};
+};
+
+&eth {
+	status = "okay";
+};
+
+&gpio {
+	status = "okay";
+};
+
+&i2c {
+	gpios = <&gpio 3 1>, /* PIN3 as SDA */
+		<&gpio 4 1>; /* PIN4 as CLK */
+};
+
+&state_default {
+	/delete-node/ rgmii2-gpio_pins;
+	/delete-node/ spi_pins;
+	/delete-node/ sdhci-gpio_pins;
+};
+
+&uartlite0 {
+	status = "okay";
+};
+
+&xhci {
+	status = "okay";
+};
