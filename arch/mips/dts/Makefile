@@ -22,6 +22,7 @@ dtb-$(CONFIG_BOARD_MT7621_NOR_TEMPLATE) += mt7621_nor_template.dtb
 dtb-$(CONFIG_BOARD_MT7621_NAND_TEMPLATE) += mt7621_nand_template.dtb
 dtb-$(CONFIG_BOARD_H3C_TX1801_PLUS) += h3c,tx1801-plus.dtb
 dtb-$(CONFIG_BOARD_RAISECOM_MSG1500X00) += raisecom,msg1500-x00.dtb
+dtb-$(CONFIG_BOARD_SIM_SIMAX1800T) += sim,simax1800t.dtb
 
 targets += $(dtb-y)
 

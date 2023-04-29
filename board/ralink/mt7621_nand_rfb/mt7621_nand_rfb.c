@@ -102,6 +102,14 @@ int last_stage_init(void)
 	gpio_input_init(7, "button-wifi");	// init button wifi
 	gpio_input_init(18, "button-wps");	// init button wps
 	gpio_output_init(19, 0, "gpio-perst");	// reset pcie
+#elif defined(CONFIG_BOARD_SIM_SIMAX1800T)
+	#define MT7621_UNUSED_PIN_LIST {0, 3, 5, 9, 10, 11, 12, 13, 14, 15, 16, 17}
+	// gpio_output_init(6, 1, "led-blue");	// led blue off
+	// gpio_output_init(8, 0, "led-green");	// led green on
+	// gpio_output_init(7, 1, "led-red");	// led red off
+	gpio_input_init(18, "button-reset");	// init button reset
+	gpio_input_init(4, "button-wps");	// init button wps
+	gpio_output_init(19, 0, "gpio-perst");	// reset pcie
 #else
 	#define MT7621_UNUSED_PIN_LIST {}
 #endif

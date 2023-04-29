@@ -20,6 +20,9 @@
 #elif defined(CONFIG_BOARD_RAISECOM_MSG1500X00)
 #define MT7621_BUTTON_RESET	15
 #define MT7621_BUTTON_WPS	18
+#elif defined(CONFIG_BOARD_SIM_SIMAX1800T)
+#define MT7621_BUTTON_RESET	18
+#define MT7621_BUTTON_WPS	4
 #endif
 
 struct mtk_bootmenu_entry {

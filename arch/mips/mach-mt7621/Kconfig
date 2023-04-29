@@ -68,6 +68,10 @@ config BOARD_RAISECOM_MSG1500X00
 	bool "RAISECOM_MSG1500 X.00 Wireless Router"
 	select SOC_MT7621
 
+config BOARD_SIM_SIMAX1800T
+	bool "SIM SIMAX1800T Wireless Router"
+	select SOC_MT7621
+
 endchoice
 
 config SPL_ALIGN_TO

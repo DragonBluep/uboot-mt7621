@@ -21,6 +21,8 @@ Boards=( \
 	h3c_tx1801-plus-nmbm \
 	raisecom_msg1500-x00 \
 	raisecom_msg1500-x00-nmbm \
+	sim_simax1800t \
+	sim_simax1800t-nmbm \
 	)
 
 if [ ! -d "./bin" ]; then
