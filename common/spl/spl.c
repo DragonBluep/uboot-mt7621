@@ -574,8 +574,7 @@ void preloader_console_init(void)
 	gd->have_console = 1;
 
 #ifndef CONFIG_SPL_DISABLE_BANNER_PRINT
-	puts("\nU-Boot SPL " PLAIN_VERSION " (" U_BOOT_DATE " - " \
-			U_BOOT_TIME " " U_BOOT_TZ ")\n");
+	puts("\nU-Boot SPL " PLAIN_VERSION " (" U_BOOT_DATE ")\n");
 #endif
 #ifdef CONFIG_SPL_DISPLAY_PRINT
 	spl_display_print();
