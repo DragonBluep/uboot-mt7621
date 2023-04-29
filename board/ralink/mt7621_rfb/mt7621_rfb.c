@@ -6,6 +6,7 @@
  */
 
 #include <common.h>
+#include <environment.h>
 #include <linux/types.h>
 #include <debug_uart.h>
 #include <asm/spl.h>
@@ -75,6 +76,13 @@ int last_stage_init(void)
 	int pinlist[] = MT7621_UNUSED_PIN_LIST;
 
 	pins_unused_init(pinlist, sizeof(pinlist)/sizeof(int));
+
+	/* Sort variables alphabetically if the variable "_sortenv" exists */
+	if (env_get("_sortenv") != NULL) {
+		printf("Sort environment variables alphabetically\n");
+		env_set("_sortenv", "");
+		env_save();
+	}
 
 	return 0;
 }
