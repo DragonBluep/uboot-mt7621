@@ -6,6 +6,7 @@
  */
 
 #include <common.h>
+#include <environment.h>
 #include <asm/types.h>
 #include <linux/mtd/mtd.h>
 #include <linux/sizes.h>
@@ -37,6 +38,39 @@ static int do_mtkboardboot(cmd_tbl_t *cmdtp, int flag, int argc,
 		CONFIG_DEFAULT_NAND_KERNEL_OFFSET);
 	run_command(cmd, 0);
 #else
+#ifdef CONFIG_BOARD_H3C_TX1801_PLUS
+	char* bakargs = env_get("bootargs");
+	if (bakargs)
+		bakargs=strdup(bakargs);
+	env_set("bootargs", "console=ttyS0,115200 rootfstype=squashfs root=/dev/mtdblock7");
+	if (env_get_yesno("bootflag") != 1) {
+		sprintf(cmd, "nmbm nmbm0 boot 0x%08x 0x%08x",
+			CONFIG_SYS_LOAD_ADDR,
+			CONFIG_DEFAULT_NAND_KERNEL_OFFSET + 0xa0);
+		run_command(cmd, 0);
+	} else {
+		sprintf(cmd, "nmbm nmbm0 boot 0x%08x 0x%08x",
+			CONFIG_SYS_LOAD_ADDR,
+			CONFIG_DEFAULT_NAND_KERNEL_OFFSET + SZ_32M + 0xa0);
+		run_command(cmd, 0);
+		env_set("bootflag", "0");
+		if (bakargs)
+			env_set("bootargs", bakargs);
+		else
+			env_set("bootargs", "");
+		if (ep)
+			env_set("autostart", ep);
+		else
+			env_set("autostart", "");
+		env_save();
+		env_set("autostart", "yes");
+	}
+	if (bakargs) {
+		env_set("bootargs", bakargs);
+		free((void *) bakargs);
+	} else
+		env_set("bootargs", "");
+#endif // CONFIG_BOARD_H3C_TX1801_PLUS
 	run_command("nmbm nmbm0 boot firmware", 0);
 
 	sprintf(cmd, "nmbm nmbm0 boot 0x%08x 0x%08x",

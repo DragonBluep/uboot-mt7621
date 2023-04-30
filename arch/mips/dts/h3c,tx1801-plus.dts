@@ -1,0 +1,78 @@
+// SPDX-License-Identifier: GPL-2.0+
+
+/dts-v1/;
+#include "mt7621.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "H3C TX1801 Plus";
+	compatible = "h3c,tx1801-plus", "mediatek,mt7621-soc";
+
+	chosen {
+		stdout-path = &uartlite0;
+	};
+
+	config {
+		reset-button = "reset";
+		wps-button = "wps";
+		status1-led = "green:status";
+		status2-led = "amber:status";
+	};
+
+	keys {
+		compatible = "gpio-keys";
+
+		reset {
+			label = "reset";
+			gpios = <&gpio 13 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		};
+
+		wps {
+			label = "wps";
+			gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_WPS_BUTTON>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led-amber {
+			label = "amber:status";
+			gpios = <&gpio 15 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+
+		led-green {
+			label = "green:status";
+			gpios = <&gpio 16 GPIO_ACTIVE_LOW>;
+			default-state = "on";
+		};
+	};
+};
+
+&eth {
+	status = "okay";
+};
+
+&gpio {
+	status = "okay";
+};
+
+&i2c {
+	gpios = <&gpio 3 1>, /* PIN3 as SDA */
+		<&gpio 4 1>; /* PIN4 as CLK */
+};
+
+&state_default {
+	/delete-node/ rgmii2-gpio_pins;
+	/delete-node/ spi_pins;
+	/delete-node/ sdhci-gpio_pins;
+};
+
+&uartlite0 {
+	status = "okay";
+};

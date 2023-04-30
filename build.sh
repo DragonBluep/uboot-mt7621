@@ -17,6 +17,8 @@ cd $(dirname "$0")
 
 # add board name here
 Boards=( \
+	h3c_tx1801-plus \
+	h3c_tx1801-plus-nmbm \
 	)
 
 if [ ! -d "./bin" ]; then

@@ -86,6 +86,13 @@ int last_stage_init(void)
 #ifdef MT7621_BUTTON_RESET
 	gpio_input_init(MT7621_BUTTON_RESET, "button-reset");	// init button reset
 #endif
+#elif defined(CONFIG_BOARD_H3C_TX1801_PLUS)
+	#define MT7621_UNUSED_PIN_LIST {0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 17, 18}
+	// gpio_output_init(15, 1, "led-amber");	// led amber off
+	// gpio_output_init(16, 0, "led-green");	// led green on
+	gpio_input_init(13, "button-reset");	// init button reset
+	gpio_input_init(14, "button-wps");	// init button wps
+	gpio_output_init(19, 0, "gpio-perst");	// reset pcie
 #else
 	#define MT7621_UNUSED_PIN_LIST {}
 #endif

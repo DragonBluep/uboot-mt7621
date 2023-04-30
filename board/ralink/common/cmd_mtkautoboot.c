@@ -14,6 +14,11 @@
 #define MT7621_USE_GPIO_LED
 #endif
 
+#if defined(CONFIG_BOARD_H3C_TX1801_PLUS)
+#define MT7621_BUTTON_RESET	13
+#define MT7621_BUTTON_WPS	14
+#endif
+
 struct mtk_bootmenu_entry {
 	const char *desc;
 	const char *cmd;

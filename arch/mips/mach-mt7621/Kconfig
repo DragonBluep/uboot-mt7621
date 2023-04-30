@@ -60,6 +60,10 @@ config BOARD_MT7621_NAND_TEMPLATE
 	bool "MT7621 Template for NAND Flash"
 	select SOC_MT7621
 
+config BOARD_H3C_TX1801_PLUS
+	bool "H3C TX1801 Plus Wireless Router"
+	select SOC_MT7621
+
 endchoice
 
 config SPL_ALIGN_TO
