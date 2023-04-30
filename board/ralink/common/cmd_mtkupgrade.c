@@ -519,7 +519,7 @@ static int do_write_bootloader(void *flash, size_t stock_stage2_off,
 
 	printf("OK\n");
 
-#ifndef CONFIG_ENV_IS_NOWHERE
+#ifdef CONFIG_ENV_ERASE_UPDATE
 	printf("Erasing environment from 0x%x to 0x%x, size 0x%x ... ",
 	       CONFIG_ENV_OFFSET, CONFIG_ENV_OFFSET + CONFIG_ENV_SIZE - 1,
 	       CONFIG_ENV_SIZE);

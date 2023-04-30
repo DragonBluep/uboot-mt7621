@@ -47,3 +47,8 @@ config MTK_DUAL_IMAGE_RESTORE_KERNEL_ONLY
 	depends on MTK_DUAL_IMAGE_SUPPORT
 	help
 	  If one image is broken, only restore its kernel part/
+
+config ENV_ERASE_UPDATE
+	bool "Erase u-boot environment after upgrading u-boot"
+	default n
+	depends on !ENV_IS_NOWHERE
