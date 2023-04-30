@@ -53,9 +53,35 @@ static inline int gpio_input_init(unsigned gpio, const char *label)
 	return 0;
 }
 
+/* Set unused pins to gpio input mode */
+static int pins_unused_init(const int *pinlist, unsigned listsize)
+{
+	int cnt;
+	char label[10] = "";
+
+	for (cnt = 0; cnt < listsize; cnt ++) {
+		if (cnt < 0 || cnt > 48) {
+			printf("unsupported GPIO: gpio#%d", pinlist[cnt]);
+			return -1;
+		}
+
+		strcpy(label, "gpio#");
+		strcat(label, simple_itoa(pinlist[cnt]));
+		gpio_input_init(pinlist[cnt], label);
+	}
+
+	return 0;
+}
+
 #ifdef CONFIG_LAST_STAGE_INIT
 int last_stage_init(void)
 {
+	#define MT7621_UNUSED_PIN_LIST {}
+
+	int pinlist[] = MT7621_UNUSED_PIN_LIST;
+
+	pins_unused_init(pinlist, sizeof(pinlist)/sizeof(int));
+
 	return 0;
 }
 #endif // CONFIG_LAST_STAGE_INIT
