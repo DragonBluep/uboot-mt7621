@@ -23,6 +23,9 @@
 #elif defined(CONFIG_BOARD_SIM_SIMAX1800T)
 #define MT7621_BUTTON_RESET	18
 #define MT7621_BUTTON_WPS	4
+#elif defined(CONFIG_BOARD_ASUS_RTAC1200GU)
+#define MT7621_BUTTON_RESET	41
+#define MT7621_BUTTON_WPS	43
 #endif
 
 struct mtk_bootmenu_entry {

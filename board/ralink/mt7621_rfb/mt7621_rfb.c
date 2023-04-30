@@ -80,6 +80,15 @@ int last_stage_init(void)
 #ifdef MT7621_BUTTON_RESET
 	gpio_input_init(MT7621_BUTTON_RESET, "button-reset");	// init button reset
 #endif
+#elif defined(CONFIG_BOARD_ASUS_RTAC1200GU)
+	#define MT7621_UNUSED_PIN_LIST {0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, \
+		13, 14, 15, 16, 17, 18, 42, 44, 45}
+	// gpio_output_init(48, 0, "led-power");	// led power on
+	// gpio_output_init(47, 1, "led-usb");	// led usb off
+	gpio_input_init(41, "button-reset");	// init button reset
+	gpio_input_init(43, "button-wps");	// init button wps
+	gpio_output_init(46, 0, "gpio-ledpwr");	// turn on led power
+	gpio_output_init(19, 0, "gpio-perst");	// reset pcie
 #else
 	#define MT7621_UNUSED_PIN_LIST {}
 #endif

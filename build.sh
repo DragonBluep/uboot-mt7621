@@ -23,6 +23,7 @@ Boards=( \
 	raisecom_msg1500-x00-nmbm \
 	sim_simax1800t \
 	sim_simax1800t-nmbm \
+	asus_rt-ac1200gu \
 	)
 
 if [ ! -d "./bin" ]; then
