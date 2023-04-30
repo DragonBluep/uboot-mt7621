@@ -696,7 +696,7 @@ static int mt7621_eth_probe(struct udevice *dev)
 	mt7530_setup(priv);
 
 	/* Turn off LED */
-	mt7621_mdio_write(priv->mdio_bus, 0, 0x1f, 0x24, 0x4000);
+	/* mt7621_mdio_write(priv->mdio_bus, 0, 0x1f, 0x24, 0x4000); */
 
 	return 0;
 }
