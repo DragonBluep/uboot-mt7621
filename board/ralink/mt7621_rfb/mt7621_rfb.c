@@ -89,6 +89,17 @@ int last_stage_init(void)
 	gpio_input_init(43, "button-wps");	// init button wps
 	gpio_output_init(46, 0, "gpio-ledpwr");	// turn on led power
 	gpio_output_init(19, 0, "gpio-perst");	// reset pcie
+#elif defined(CONFIG_BOARD_DLINK_DIR878A1)
+	#define MT7621_UNUSED_PIN_LIST {0, 5, 6, 9, 10, 11, 12, 13, 14, 17, \
+		41, 42, 43, 44, 45, 46, 47, 48}
+	// gpio_output_init(4, 1, "led-internet_amber");	// led internet amber off
+	// gpio_output_init(3, 1, "led-internet_green");	// led internet green off
+	// gpio_output_init(8, 1, "led-power_amber");	// led power amber off
+	// gpio_output_init(16, 0, "led-power_green");	// led power green on
+	gpio_input_init(15, "button-reset");	// init button reset
+	gpio_input_init(7, "button-wifi");	// init button wifi
+	gpio_input_init(18, "button-wps");	// init button wps
+	gpio_output_init(19, 0, "gpio-perst");	// reset pcie
 #else
 	#define MT7621_UNUSED_PIN_LIST {}
 #endif

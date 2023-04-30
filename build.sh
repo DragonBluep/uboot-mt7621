@@ -24,6 +24,7 @@ Boards=( \
 	sim_simax1800t \
 	sim_simax1800t-nmbm \
 	asus_rt-ac1200gu \
+	dlink_dir-878-a1 \
 	)
 
 if [ ! -d "./bin" ]; then

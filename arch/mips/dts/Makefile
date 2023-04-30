@@ -24,6 +24,7 @@ dtb-$(CONFIG_BOARD_H3C_TX1801_PLUS) += h3c,tx1801-plus.dtb
 dtb-$(CONFIG_BOARD_RAISECOM_MSG1500X00) += raisecom,msg1500-x00.dtb
 dtb-$(CONFIG_BOARD_SIM_SIMAX1800T) += sim,simax1800t.dtb
 dtb-$(CONFIG_BOARD_ASUS_RTAC1200GU) += asus,rt-ac1200gu.dtb
+dtb-$(CONFIG_BOARD_DLINK_DIR878A1) += dlink,dir-878-a1.dtb
 
 targets += $(dtb-y)
 

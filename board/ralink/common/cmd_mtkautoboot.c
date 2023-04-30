@@ -26,6 +26,9 @@
 #elif defined(CONFIG_BOARD_ASUS_RTAC1200GU)
 #define MT7621_BUTTON_RESET	41
 #define MT7621_BUTTON_WPS	43
+#elif defined(CONFIG_BOARD_DLINK_DIR878A1)
+#define MT7621_BUTTON_RESET	15
+#define MT7621_BUTTON_WPS	18
 #endif
 
 struct mtk_bootmenu_entry {
