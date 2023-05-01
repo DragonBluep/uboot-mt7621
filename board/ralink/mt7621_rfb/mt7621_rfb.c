@@ -126,6 +126,17 @@ int last_stage_init(void)
 	// gpio_output_init(4, 1, "led-wlan_green");	// led wlan green off
 	gpio_input_init(18, "button-reset");	// init button reset
 	gpio_output_init(19, 0, "gpio-perst");	// reset pcie
+#elif defined(CONFIG_BOARD_ZTE_E8820V2)
+	#define MT7621_UNUSED_PIN_LIST {0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, \
+		13, 14, 15, 16, 17, 23, 25, 27, 28, 30, 32, 33, 41, 42, 43, \
+		44, 45, 46, 47, 48}
+	// gpio_output_init(29, 0, "led-power");	// led power on
+	// gpio_output_init(31, 0, "led-status");	// led status on
+	gpio_input_init(18, "button-reset");	// init button reset
+	gpio_input_init(24, "button-wps");	// init button wps
+	gpio_output_init(19, 0, "gpio-perst0-sys");	// reset pcie0 system
+	gpio_output_init(22, 0, "gpio-perst0-ldo");	// reset pcie0 ldo
+	gpio_output_init(26, 0, "gpio-perst1");	// reset pcie1 ldo & system
 #else
 	#define MT7621_UNUSED_PIN_LIST {}
 #endif

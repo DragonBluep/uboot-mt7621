@@ -28,6 +28,7 @@ dtb-$(CONFIG_BOARD_DLINK_DIR878A1) += dlink,dir-878-a1.dtb
 dtb-$(CONFIG_BOARD_LINKSURE_SG5) += linksure,sg5.dtb
 dtb-$(CONFIG_BOARD_MERCURY_MAC2600R) += mercury,mac2600r.dtb
 dtb-$(CONFIG_BOARD_SKSPRUCE_WIA330010) += skspruce,wia3300-10.dtb
+dtb-$(CONFIG_BOARD_ZTE_E8820V2) += zte,e8820-v2.dtb
 
 targets += $(dtb-y)
 

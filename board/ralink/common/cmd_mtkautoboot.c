@@ -35,6 +35,9 @@
 #define MT7621_BUTTON_RESET	8
 #elif defined(CONFIG_BOARD_SKSPRUCE_WIA330010)
 #define MT7621_BUTTON_RESET	18
+#elif defined(CONFIG_BOARD_ZTE_E8820V2)
+#define MT7621_BUTTON_RESET	18
+#define MT7621_BUTTON_WPS	24
 #endif
 
 struct mtk_bootmenu_entry {

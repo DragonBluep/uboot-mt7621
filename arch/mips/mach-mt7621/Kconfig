@@ -92,6 +92,10 @@ config BOARD_SKSPRUCE_WIA330010
 	bool "SKSpruce WIA3300-10 Wireless Router"
 	select SOC_MT7621
 
+config BOARD_ZTE_E8820V2
+	bool "ZTE E8820 V2 Wireless Router"
+	select SOC_MT7621
+
 endchoice
 
 config SPL_ALIGN_TO

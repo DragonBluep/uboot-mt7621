@@ -1,0 +1,99 @@
+// SPDX-License-Identifier: GPL-2.0+
+
+/dts-v1/;
+#include "mt7621.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "ZTE E8820 V2";
+	compatible = "zte,e8820-v2", "mediatek,mt7621-soc";
+
+	aliases {
+		spi0 = &spi;
+	};
+
+	chosen {
+		stdout-path = &uartlite0;
+	};
+
+	config {
+		reset-button = "reset";
+		wps-button = "wps";
+		status1-led = "white:power";
+	};
+
+	keys {
+		compatible = "gpio-keys";
+
+		reset {
+			label = "reset";
+			gpios = <&gpio 18 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		};
+
+		wps {
+			label = "wps";
+			gpios = <&gpio 24 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led-power {
+			label = "white:power";
+			gpios = <&gpio 29 GPIO_ACTIVE_LOW>;
+			default-state = "on";
+		};
+
+		led-status {
+			label = "white:status";
+			gpios = <&gpio 31 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+	};
+};
+
+&eth {
+	status = "okay";
+};
+
+&gpio {
+	status = "okay";
+};
+
+&i2c {
+	gpios = <&gpio 3 1>, /* PIN3 as SDA */
+		<&gpio 4 1>; /* PIN4 as CLK */
+};
+
+&spi {
+	status = "okay";
+
+	spi-max-frequency = <45000000>;
+
+	spi-flash@0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "spi-flash";
+		spi-max-frequency = <45000000>;
+		reg = <0>;
+	};
+};
+
+&state_default {
+	/delete-node/ spi-nand_pins;
+	/delete-node/ sdhci-nand_pins;
+	/delete-node/ rgmii2_pins;
+};
+
+&uartlite0 {
+	status = "okay";
+};
+
+&xhci {
+	status = "okay";
+};
