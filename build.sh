@@ -27,6 +27,7 @@ Boards=( \
 	dlink_dir-878-a1 \
 	linksure_sg5 \
 	mercury_mac2600r \
+	skspruce_wia3300-10 \
 	)
 
 if [ ! -d "./bin" ]; then

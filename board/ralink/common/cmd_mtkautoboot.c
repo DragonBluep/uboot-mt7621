@@ -33,6 +33,8 @@
 #define MT7621_BUTTON_RESET	23
 #elif defined(CONFIG_BOARD_MERCURY_MAC2600R)
 #define MT7621_BUTTON_RESET	8
+#elif defined(CONFIG_BOARD_SKSPRUCE_WIA330010)
+#define MT7621_BUTTON_RESET	18
 #endif
 
 struct mtk_bootmenu_entry {

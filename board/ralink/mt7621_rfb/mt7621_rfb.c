@@ -116,6 +116,16 @@ int last_stage_init(void)
 	// gpio_output_init(25, 0, "led-status");	// led status on
 	gpio_input_init(8, "button-reset");	// init button reset
 	gpio_output_init(19, 0, "gpio-perst");	// reset pcie
+#elif defined(CONFIG_BOARD_SKSPRUCE_WIA330010)
+	#define MT7621_UNUSED_PIN_LIST {0, 3, 5, 6, 7, 8, 9, 10, 11, 12, \
+		13, 14, 15, 16, 17, 25, 26, 27, 28, 29, 30, 31, 32, 33, 41, \
+		42, 43, 44, 45, 46, 47, 48}
+	// gpio_output_init(24, 0, "led-status_green");	// led status green on
+	// gpio_output_init(23, 1, "led-status_red");	// led status red off
+	// gpio_output_init(22, 1, "led-wlan_blue");	// led wlan blue off
+	// gpio_output_init(4, 1, "led-wlan_green");	// led wlan green off
+	gpio_input_init(18, "button-reset");	// init button reset
+	gpio_output_init(19, 0, "gpio-perst");	// reset pcie
 #else
 	#define MT7621_UNUSED_PIN_LIST {}
 #endif
