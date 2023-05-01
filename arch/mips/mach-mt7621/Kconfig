@@ -84,6 +84,10 @@ config BOARD_LINKSURE_SG5
 	bool "LinkSure SG5 Wireless Router"
 	select SOC_MT7621
 
+config BOARD_MERCURY_MAC2600R
+	bool "MERCURY MAC2600R Wireless Router"
+	select SOC_MT7621
+
 endchoice
 
 config SPL_ALIGN_TO

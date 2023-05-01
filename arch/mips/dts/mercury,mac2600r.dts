@@ -1,0 +1,82 @@
+// SPDX-License-Identifier: GPL-2.0+
+
+/dts-v1/;
+#include "mt7621.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+
+/ {
+	model = "MERCURY MAC2600R";
+	compatible = "mercury,mac2600r", "mediatek,mt7621-soc";
+
+	aliases {
+		spi0 = &spi;
+	};
+
+	chosen {
+		stdout-path = &uartlite0;
+	};
+
+	config {
+		reset-button = "reset";
+		status1-led = "white:status";
+	};
+
+	keys {
+		compatible = "gpio-keys";
+
+		reset {
+			label = "reset";
+			gpios = <&gpio 8 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led-status {
+			label = "white:status";
+			gpios = <&gpio 25 GPIO_ACTIVE_LOW>;
+			default-state = "on";
+		};
+	};
+};
+
+&eth {
+	status = "okay";
+};
+
+&gpio {
+	status = "okay";
+};
+
+&i2c {
+	gpios = <&gpio 3 1>, /* PIN3 as SDA */
+		<&gpio 4 1>; /* PIN4 as CLK */
+};
+
+&spi {
+	status = "okay";
+
+	spi-max-frequency = <45000000>;
+
+	spi-flash@0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "spi-flash";
+		spi-max-frequency = <45000000>;
+		reg = <0>;
+	};
+};
+
+&state_default {
+	/delete-node/ spi-nand_pins;
+	/delete-node/ sdhci-nand_pins;
+	/delete-node/ rgmii2_pins;
+};
+
+&uartlite0 {
+	status = "okay";
+};

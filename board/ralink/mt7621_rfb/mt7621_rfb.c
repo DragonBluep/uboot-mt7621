@@ -109,6 +109,13 @@ int last_stage_init(void)
 	// gpio_output_init(24, 1, "led-wlan1");	// led wlan1 off
 	gpio_input_init(23, "button-reset");	// init button reset
 	gpio_output_init(19, 0, "gpio-perst");	// reset pcie
+#elif defined(CONFIG_BOARD_MERCURY_MAC2600R)
+	#define MT7621_UNUSED_PIN_LIST {0, 3, 4, 5, 6, 7, 9, 10, 11, 12, \
+		13, 14, 15, 16, 17, 18, 22, 23, 24, 26, 27, 28, 29, 30, 31, \
+		32, 33, 41, 42, 43, 44, 45, 46, 47, 48}
+	// gpio_output_init(25, 0, "led-status");	// led status on
+	gpio_input_init(8, "button-reset");	// init button reset
+	gpio_output_init(19, 0, "gpio-perst");	// reset pcie
 #else
 	#define MT7621_UNUSED_PIN_LIST {}
 #endif

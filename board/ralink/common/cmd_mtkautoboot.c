@@ -31,6 +31,8 @@
 #define MT7621_BUTTON_WPS	18
 #elif defined(CONFIG_BOARD_LINKSURE_SG5)
 #define MT7621_BUTTON_RESET	23
+#elif defined(CONFIG_BOARD_MERCURY_MAC2600R)
+#define MT7621_BUTTON_RESET	8
 #endif
 
 struct mtk_bootmenu_entry {
