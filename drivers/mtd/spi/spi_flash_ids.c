@@ -59,6 +59,7 @@ const struct spi_flash_info spi_flash_ids[] = {
 	{"en25q32b",	   INFO(0x1c3016, 0x0, 64 * 1024,    64, 0) },
 	{"en25q64",	   INFO(0x1c3017, 0x0, 64 * 1024,   128, SECT_4K) },
 	{"en25q128b",	   INFO(0x1c3018, 0x0, 64 * 1024,   256, 0) },
+	{"en25qh128",	   INFO(0x1c7018, 0x0, 64 * 1024,   256, 0) },
 	{"en25s64",	   INFO(0x1c3817, 0x0, 64 * 1024,   128, 0) },
 #endif
 #ifdef CONFIG_SPI_FLASH_GIGADEVICE	/* GIGADEVICE */
@@ -67,6 +68,8 @@ const struct spi_flash_info spi_flash_ids[] = {
 	{"gd25q32b",       INFO(0xc84016, 0x0, 64 * 1024,    64, SECT_4K) },
 	{"gd25q128b",	   INFO(0xc84018, 0x0, 64 * 1024,   256, SECT_4K) },
 	{"gd25lq32",	   INFO(0xc86016, 0x0, 64 * 1024,    64, SECT_4K) },
+	{"gd25lq64c", 	   INFO(0xc86017, 0x0, 64 * 1024,   128, RD_FULL | WR_QPP | SECT_4K) },
+	{"gd25q128", 	   INFO(0xc84018, 0x0, 64 * 1024,   256, RD_FULL | WR_QPP | SECT_4K) },
 #endif
 #ifdef CONFIG_SPI_FLASH_ISSI		/* ISSI */
 	{"is25lq040b",	   INFO(0x9d4013, 0x0, 64 * 1024,    8, 0)  },
@@ -77,6 +80,8 @@ const struct spi_flash_info spi_flash_ids[] = {
 	{"is25wp032",	   INFO(0x9d7016, 0x0, 64 * 1024,    64, RD_FULL | SECT_4K) },
 	{"is25wp064",	   INFO(0x9d7017, 0x0, 64 * 1024,   128, RD_FULL | SECT_4K) },
 	{"is25wp128",	   INFO(0x9d7018, 0x0, 64 * 1024,   256, RD_FULL | SECT_4K) },
+	{"is25wp256",	   INFO(0x9d7019, 0x0, 64 * 1024,   512, RD_FULL | SECT_4K) },
+	{"is25wx256",	   INFO(0x9d5b19, 0x0, 128 * 1024,  256, RD_FULL | SECT_4K) },
 #endif
 #ifdef CONFIG_SPI_FLASH_MACRONIX	/* MACRONIX */
 	{"mx25l2006e",	   INFO(0xc22012, 0x0, 64 * 1024,     4, 0) },
@@ -92,7 +97,9 @@ const struct spi_flash_info spi_flash_ids[] = {
 	{"mx25u6435f",	   INFO(0xc22537, 0x0, 64 * 1024,   128, RD_FULL | WR_QPP) },
 	{"mx25l12855e",	   INFO(0xc22618, 0x0, 64 * 1024,   256, RD_FULL | WR_QPP) },
 	{"mx25u1635e",     INFO(0xc22535, 0x0, 64 * 1024,  32, SECT_4K) },
+	{"mx25u12835f",    INFO(0xc22538, 0x0, 64 * 1024, 256, SECT_4K) },
 	{"mx25u25635f",    INFO(0xc22539, 0x0, 64 * 1024,   512, RD_FULL | WR_QPP) },
+	{"mx25l25655e",    INFO(0xc22619, 0x0, 64 * 1024,   512, 0) },
 	{"mx66u51235f",    INFO(0xc2253a, 0x0, 64 * 1024,  1024, RD_FULL | WR_QPP) },
 	{"mx66l1g45g",     INFO(0xc2201b, 0x0, 64 * 1024,  2048, RD_FULL | WR_QPP) },
 #endif
@@ -187,8 +194,16 @@ const struct spi_flash_info spi_flash_ids[] = {
 	{"w25q64jv",	   INFO(0xef7017, 0x0,	64 * 1024,   128, RD_FULL | WR_QPP | SECT_4K) },
 	{"w25q128fw",	   INFO(0xef6018, 0x0,	64 * 1024,   256, RD_FULL | WR_QPP | SECT_4K) },
 	{"w25q128jv",	   INFO(0xef7018, 0x0,	64 * 1024,   256, RD_FULL | WR_QPP | SECT_4K) },
+	{"w25q128jw",	   INFO(0xef8018, 0x0,	64 * 1024,   256, RD_FULL | WR_QPP | SECT_4K) },
 	{"w25q256fw",	   INFO(0xef6019, 0x0,	64 * 1024,   512, RD_FULL | WR_QPP | SECT_4K) },
 	{"w25q256jw",	   INFO(0xef7019, 0x0,	64 * 1024,   512, RD_FULL | WR_QPP | SECT_4K) },
+#endif
+#ifdef CONFIG_SPI_FLASH_XMC
+	/* XMC (Wuhan Xinxin Semiconductor Manufacturing Corp.) */
+	{ "XM25QH64A",		INFO(0x207017, 0x0, 64 * 1024, 128, RD_FULL | SECT_4K) },
+	{ "XM25QH64C",		INFO(0x204017, 0x0, 64 * 1024, 128, RD_FULL | SECT_4K) },
+	{ "XM25QH128A",		INFO(0x207018, 0x0, 64 * 1024, 256, RD_FULL | SECT_4K) },
+	{ "XM25QH128C",		INFO(0x204018, 0x0, 64 * 1024, 256, RD_FULL | SECT_4K) },
 #endif
 	{},	/* Empty entry to terminate the list */
 	/*
