@@ -55,7 +55,7 @@ static int mtkboardboot(void)
 	image_header_t hdr;
 	struct spi_flash *sf;
 	uint32_t fw_off = CONFIG_DEFAULT_NOR_KERNEL_OFFSET;
-	uint32_t load_addr, kernel_load_addr, size;
+	uint32_t load_addr, size;
 	u8 pnum;
 	int ret;
 
@@ -111,13 +111,13 @@ static int mtkboardboot(void)
 	switch (genimg_get_format((void *) &hdr)) {
 	case IMAGE_FORMAT_LEGACY:
 		size = image_get_image_size(&hdr);
-		kernel_load_addr = image_get_load(&hdr);
+		// kernel_load_addr = image_get_load(&hdr);
 
-		if (CKSEG0ADDR(kernel_load_addr) -
-			CKSEG0ADDR(CONFIG_SYS_LOAD_ADDR) < size)
-			load_addr = CKSEG0ADDR(kernel_load_addr) + SZ_16M;
-		else
-			load_addr = CONFIG_SYS_LOAD_ADDR;
+		// if (CKSEG0ADDR(kernel_load_addr) -
+		// 	CKSEG0ADDR(CONFIG_SYS_LOAD_ADDR) < size)
+		// 	load_addr = CKSEG0ADDR(kernel_load_addr) + SZ_16M;
+		// else
+		load_addr = CONFIG_SYS_LOAD_ADDR;
 
 		break;
 #if defined(CONFIG_FIT)

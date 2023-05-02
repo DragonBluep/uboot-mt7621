@@ -33,14 +33,14 @@ static int do_mtkboardboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	run_command("nboot firmware", 0);
 
 	sprintf(cmd, "nboot 0x%08x nand0 0x%08x",
-		CONFIG_SYS_SDRAM_BASE + SZ_32M,
+		CONFIG_SYS_LOAD_ADDR,
 		CONFIG_DEFAULT_NAND_KERNEL_OFFSET);
 	run_command(cmd, 0);
 #else
 	run_command("nmbm nmbm0 boot firmware", 0);
 
 	sprintf(cmd, "nmbm nmbm0 boot 0x%08x 0x%08x",
-		CONFIG_SYS_SDRAM_BASE + SZ_32M,
+		CONFIG_SYS_LOAD_ADDR,
 		CONFIG_DEFAULT_NAND_KERNEL_OFFSET);
 	run_command(cmd, 0);
 #endif
