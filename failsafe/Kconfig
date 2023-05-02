@@ -16,9 +16,8 @@ config WEBUI_FAILSAFE_ON_AUTOBOOT_FAIL
 	bool "Start Failsafe Web UI on autoboot failure"
 	default n
 
-config WEBUI_FAILSAFE_ON_BUTTON
-	bool "Press and hold the reset button to enter the failsafe"
-	depends on MT7621_RST_BTN
+config FAILSAFE_ON_BUTTON
+	bool "Press and hold the reset button to enter the failsafe mode"
 	default n
 
 endif # WEBUI_FAILSAFE

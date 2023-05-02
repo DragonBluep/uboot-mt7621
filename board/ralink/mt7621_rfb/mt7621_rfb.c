@@ -10,11 +10,49 @@
 #include <debug_uart.h>
 #include <asm/spl.h>
 #include <asm/io.h>
+#include <asm-generic/gpio.h>
 #include <mach/mt7621_regs.h>
 #include <spi.h>
 #include <spi_flash.h>
 #include <dm.h>
 #include <dm/device-internal.h>
+
+static inline int gpio_output_init(unsigned gpio, int value, const char *label)
+{
+	int ret;
+
+	ret = gpio_request(gpio, label);
+	if (ret && ret != -EBUSY) {
+		printf("gpio: requesting pin %u failed\n", gpio);
+		return -1;
+	}
+
+	gpio_direction_output(gpio, value);
+
+	return 0;
+}
+
+static inline int gpio_input_init(unsigned gpio, const char *label)
+{
+	int ret;
+
+	ret = gpio_request(gpio, label);
+	if (ret && ret != -EBUSY) {
+		printf("gpio: requesting pin %u failed\n", gpio);
+		return -1;
+	}
+
+	gpio_direction_input(gpio);
+
+	return 0;
+}
+
+#ifdef CONFIG_LAST_STAGE_INIT
+int last_stage_init(void)
+{
+	return 0;
+}
+#endif // CONFIG_LAST_STAGE_INIT
 
 #ifdef CONFIG_DEBUG_UART_BOARD_INIT
 void board_debug_uart_init(void)

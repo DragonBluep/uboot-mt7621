@@ -6,7 +6,7 @@
  */
 
 #include <common.h>
-#include "gpio.h"
+#include <asm-generic/gpio.h>
 
 struct mtk_bootmenu_entry {
 	const char *desc;
@@ -40,12 +40,32 @@ static int do_mtkautoboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	const char *delay_str;
 	u32 delay = CONFIG_MTKAUTOBOOT_DELAY;
 
-#ifdef CONFIG_WEBUI_FAILSAFE_ON_BUTTON
-	if (mt7621_is_reset_pressed()) {
-		printf("Enter Failsafe Mode by Press Reset Button!\n");
+#ifdef CONFIG_FAILSAFE_ON_BUTTON
+	for (i = 0; i < 5; i++) {
+		if (gpio_get_value(MT7621_BUTTON_RESET) != 0)
+			break;
+
+		mdelay(100);
+#ifdef MT7621_LED_STATUS1
+		gpio_direction_output(MT7621_LED_STATUS1, 1);
+#endif // MT7621_LED_STATUS1
+#ifdef MT7621_LED_STATUS2
+		gpio_direction_output(MT7621_LED_STATUS2, 0);
+#endif // MT7621_LED_STATUS2
+		mdelay(100);
+#ifdef MT7621_LED_STATUS1
+		gpio_direction_output(MT7621_LED_STATUS1, 0);
+#endif // MT7621_LED_STATUS1
+#ifdef MT7621_LED_STATUS2
+		gpio_direction_output(MT7621_LED_STATUS2, 1);
+#endif // MT7621_LED_STATUS2
+	}
+
+	if (i == 5) {
+		printf("Enter web failsafe mode by pressing reset button\n");
 		run_command("httpd", 0);
 	}
-#endif // CONFIG_WEBUI_FAILSAFE_ON_BUTTON
+#endif // CONFIG_FAILSAFE_ON_BUTTON
 
 	for (i = 0; i < ARRAY_SIZE(bootmenu_entries); i++) {
 		snprintf(key, sizeof(key), "bootmenu_%d", i);

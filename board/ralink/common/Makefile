@@ -12,6 +12,5 @@ endif
 ifndef CONFIG_SPL_BUILD
 obj-y += cmd_mtkupgrade.o
 obj-y += cmd_mtkautoboot.o
-obj-y += gpio.o
 obj-$(CONFIG_MTK_DUAL_IMAGE_SUPPORT) 	+= dual_image.o
 endif
