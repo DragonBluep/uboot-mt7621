@@ -168,7 +168,7 @@ static int do_nmbm_mtd_boot(cmd_tbl_t *cmdtp, struct mtd_info *mtd,
 	}
 
 	switch (genimg_get_format((void *)loadaddr)) {
-#if defined(CONFIG_LEGACY_IMAGE_FORMAT)
+#if defined(CONFIG_IMAGE_FORMAT_LEGACY)
 	case IMAGE_FORMAT_LEGACY:
 		size = image_get_image_size((image_header_t *)loadaddr);
 		image_name = "legacy";
@@ -196,7 +196,7 @@ static int do_nmbm_mtd_boot(cmd_tbl_t *cmdtp, struct mtd_info *mtd,
 	}
 
 	switch (genimg_get_format((void *)loadaddr)) {
-#if defined(CONFIG_LEGACY_IMAGE_FORMAT)
+#if defined(CONFIG_IMAGE_FORMAT_LEGACY)
 	case IMAGE_FORMAT_LEGACY:
 		if (print_image_contents)
 			image_print_contents((void *)loadaddr);
