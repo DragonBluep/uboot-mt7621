@@ -77,7 +77,17 @@ static int pins_unused_init(const int *pinlist, unsigned listsize)
 #ifdef CONFIG_LAST_STAGE_INIT
 int last_stage_init(void)
 {
+#if defined(CONFIG_BOARD_MT7621_NAND_TEMPLATE)
 	#define MT7621_UNUSED_PIN_LIST {}
+#ifdef MT7621_LED_STATUS1
+	gpio_output_init(MT7621_LED_STATUS1, 0, "led-status");	// led status on
+#endif
+#ifdef MT7621_BUTTON_RESET
+	gpio_input_init(MT7621_BUTTON_RESET, "button-reset");	// init button reset
+#endif
+#else
+	#define MT7621_UNUSED_PIN_LIST {}
+#endif
 
 	int pinlist[] = MT7621_UNUSED_PIN_LIST;
 

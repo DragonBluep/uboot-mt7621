@@ -45,24 +45,23 @@ else
 	echo "CONFIG_DEFAULT_NAND_KERNEL_OFFSET=$3" >> ${DEFCONFIG}
 fi
 
+echo -e "#ifndef __CONFIG_MT7621_RESET_LED\n#define __CONFIG_MT7621_RESET_LED" \
+	>> ./include/configs/mt7621-common.h
 if [ "$4" -ge 0 -a "$4" -le 48 ]; then
 	echo "set reset button pin: $4"
-	echo "CONFIG_MT7621_RST_BTN_PIN=$4" >> ${DEFCONFIG}
-	# if reset button is triggered by high level, change '0' to '1' here
-	echo "CONFIG_MT7621_RST_BTN_LEVEL=0" >> ${DEFCONFIG}
+	echo "CONFIG_FAILSAFE_ON_BUTTON=y" >> ${DEFCONFIG}
+	echo "#define MT7621_BUTTON_RESET $4" >> ./include/configs/mt7621-common.h
 else
 	echo "Reset button is disabled!"
-	echo "# CONFIG_MT7621_RST_BTN is not set" >> ${DEFCONFIG}
 fi
 
 if [ "$5" -ge 0 -a "$5" -le 48 ]; then
 	echo "set system led pin: $5"
-	echo "CONFIG_MT7621_SYS_LED_PIN=$5" >> ${DEFCONFIG}
-	echo "CONFIG_MT7621_SYS_LED_LEVEL=0" >> ${DEFCONFIG}
+	echo "#define MT7621_LED_STATUS1 $5" >> ./include/configs/mt7621-common.h
 else
 	echo "System LED is disabled!"
-	echo "# CONFIG_MT7621_SYS_LED is not set" >> ${DEFCONFIG}
 fi
+echo "#endif" >> ./include/configs/mt7621-common.h
 
 if [ "$6" -ge 400 -a "$6" -le 1200 ]; then
 	echo "set CPU frequency: $6 MHz"
