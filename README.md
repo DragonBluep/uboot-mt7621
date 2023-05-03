@@ -24,11 +24,11 @@ notice: `u-boot` and `firmware` partitions are essential
 equal to the sum of all partition size before `firmware` in hexadecimal
 
 **Reset Button GPIO**  
-GPIO pin number of reset button  
+GPIO pin number of the reset button  
 notice: if not set, you can't press reset button to enter failsafe mode
 
 **System LED GPIO**  
-GPIO pin number of status LED  
+GPIO pin number of the status LED  
 notice: if not set, status LED won't blink when you press reset button
 
 **CPU Frequency**  
@@ -40,8 +40,8 @@ default 800 (MT/s) for DDR2 and 1200 (MT/s) for DDR3.
 notice: if your board is unstable, try lowering it.
 
 **Prefered DDR Init Parameters**  
-DRAM type and size or specific model  
-DDR3-128MiB-KGD is for MT7621DAT (internal integrated 128MiB RAM)
+DRAM specific model or type and size  
+notice: DDR3-128MiB-KGD is for MT7621DAT (internal integrated 128MiB RAM)
 
 **Use Old DDR Timing Parameters**  
 DDR Timing Parameters used in ralink U-Boot 1.1.3  
@@ -54,12 +54,16 @@ TTL serial port baud rate, 57600 or 115200
 
 1. Flash `u-boot-mt7621.bin` into board.
 
-2. Set computer IP address to `192.168.1.2` and net mask to `255.255.255.0`. Server IP `192.168.1.1` is optional.
+2. Set computer IP address to `192.168.1.2` and Netmask to `255.255.255.0`.  
+   Gateway `192.168.1.1` is optional.
 
-3. Remove the power supply, press and hold the reset button, plug in the power supply.
+3. Remove the power supply, press and hold the reset button, plug in the  
+   power supply. And then you can choose:
 
-   a) Release the button after the status LED blinks for 1-5 seconds, then you will enter into WebUI recovery mode.  
-   You can open http://192.18.1.1 in the browser to upload firmware.  
+   a) Release the button after the status LED blinks at least 1 second  
+   (blink 5 times), then you will enter into WebUI recovery mode. You can  
+   open http://192.168.1.1 in the browser to upload firmware.
 
-   b) Hold the button until the status LED no longer blinks, then you will enter into TFTP download mode.  
-   You can upload **initramfs** kernel image `recovery.bin` via tftp server such as tftpd64.
+   b) Hold the button until the status LED no longer blinks (blink 6 seconds  
+   in total), then you will enter into TFTP download mode. You can upload  
+   **initramfs** kernel image `recovery.bin` via TFTP server such as tftpd64.
