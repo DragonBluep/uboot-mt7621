@@ -48,7 +48,8 @@ static int do_mtkboardboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	if (ep) {
 		env_set("autostart", ep);
 		free((void *) ep);
-	}
+	} else
+		env_set("autostart", "");
 
 #ifndef CONFIG_WEBUI_FAILSAFE_ON_AUTOBOOT_FAIL
 	return CMD_RET_FAILURE;

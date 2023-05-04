@@ -963,6 +963,8 @@ static int run_image(size_t data_addr, uint32_t data_size)
 {
 	char *uimage_ptr;
 	char *argv[2], str[64];
+	const char *ep;
+	int ret;
 	struct image_header hdr;
 
 	/* Check for SPL bootloader first */
@@ -979,11 +981,23 @@ static int run_image(size_t data_addr, uint32_t data_size)
 		uimage_ptr = (void *) data_addr;
 	}
 
+	ep = env_get("autostart");
+	if (ep)
+		ep = strdup(ep);
+
+	env_set("autostart", "yes");
 	sprintf(str, "0x%p", uimage_ptr);
 	argv[0] = "bootm";
 	argv[1] = str;
+	ret = do_bootm(find_cmd("do_bootm"), 0, 2, argv);
+	
+	if (ep) {
+		env_set("autostart", ep);
+		free((void *) ep);
+	} else
+		env_set("autostart", "");
 
-	return do_bootm(find_cmd("do_bootm"), 0, 2, argv);
+	return ret;
 }
 
 static int do_mtkload(cmd_tbl_t *cmdtp, int flag, int argc,
