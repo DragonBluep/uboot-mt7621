@@ -31,23 +31,6 @@ struct mtk_bootmenu_entry {
 };
 
 #ifdef CONFIG_FAILSAFE_ON_BUTTON
-/* Loop TFTP download mode */
-static void mtktftploop(void)
-{
-	#define _tostr(a)	#a
-	#define tostr(a)	_tostr(a)
-
-	env_set("autostart", "yes");
-	env_set("ipaddr", "192.168.1.1");
-	env_set("serverip", "192.168.1.2");
-	env_set("loadaddr", tostr(CONFIG_SYS_LOAD_ADDR));
-
-	while(1) {
-		run_command("tftp recovery.bin", 0);
-		mdelay(3000);
-	}
-}
-
 static inline void mtkledblink(void)
 {
 	mdelay(100);
@@ -64,6 +47,27 @@ static inline void mtkledblink(void)
 #ifdef MT7621_LED_STATUS2
 	gpio_direction_output(MT7621_LED_STATUS2, 1);
 #endif // MT7621_LED_STATUS2
+}
+
+/* Loop TFTP download mode */
+static void mtktftploop(void)
+{
+	int cnt;
+
+	#define _tostr(a)	#a
+	#define tostr(a)	_tostr(a)
+
+	env_set("autostart", "yes");
+	env_set("ipaddr", "192.168.1.1");
+	env_set("serverip", "192.168.1.2");
+	env_set("loadaddr", tostr(CONFIG_SYS_LOAD_ADDR));
+
+	while(1) {
+		run_command("tftp recovery.bin", 0);
+		mdelay(2000);
+		for (cnt = 0; cnt < 3; cnt++)
+			mtkledblink();
+	}
 }
 #endif
 
