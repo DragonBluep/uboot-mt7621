@@ -76,7 +76,7 @@ on:
 jobs:
   build:
     name: Build MT7621 u-boot
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
        fail-fast: False
 
@@ -96,7 +96,7 @@ jobs:
 
       - name: Download OpenWrt toolchain
         run: |
-          wget -O - https://github.com/DragonBluep/uboot-mt7621/releases/download/20221120/openwrt-sdk-19.07.10-ramips-mt7621_gcc-7.5.0_musl.Linux-x86_64.tar.xz \
+          wget -O - https://github.com/DragonBluep/uboot-mt7621/releases/download/20230517/openwrt-toolchain-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz \
             | tar --xz -xf -
 
       - name: Set old DDR timing parameters
