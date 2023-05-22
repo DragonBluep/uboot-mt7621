@@ -1082,15 +1082,15 @@ endif
 ifdef CONFIG_SPL_LOAD_FIT
 MKIMAGEFLAGS_u-boot.img = -f auto -A $(ARCH) -T firmware -C none -O u-boot \
 	-a $(CONFIG_SYS_TEXT_BASE) -e $(CONFIG_SYS_UBOOT_START) \
-	-n "U-Boot $(UBOOTRELEASE) for $(BOARD) board" -E \
+	-n "U-Boot $(UBOOTRELEASE)" -E \
 	$(patsubst %,-b arch/$(ARCH)/dts/%.dtb,$(subst ",,$(CONFIG_OF_LIST)))
 else
 MKIMAGEFLAGS_u-boot.img = -A $(ARCH) -T firmware -C none -O u-boot \
 	-a $(CONFIG_SYS_TEXT_BASE) -e $(CONFIG_SYS_UBOOT_START) \
-	-n "U-Boot $(UBOOTRELEASE) for $(BOARD) board"
+	-n "U-Boot $(UBOOTRELEASE)"
 MKIMAGEFLAGS_u-boot-ivt.img = -A $(ARCH) -T firmware_ivt -C none -O u-boot \
 	-a $(CONFIG_SYS_TEXT_BASE) -e $(CONFIG_SYS_UBOOT_START) \
-	-n "U-Boot $(UBOOTRELEASE) for $(BOARD) board"
+	-n "U-Boot $(UBOOTRELEASE)"
 u-boot-ivt.img: MKIMAGEOUTPUT = u-boot-ivt.img.log
 CLEAN_FILES += u-boot-ivt.img.log u-boot-dtb.imx.log SPL.log u-boot.imx.log
 endif
@@ -1109,7 +1109,7 @@ MKIMAGEFLAGS_u-boot.pbl = -n $(srctree)/$(CONFIG_SYS_FSL_PBL_RCW:"%"=%) \
 
 MKIMAGEFLAGS_u-boot-lzma.img = -A $(ARCH) -T firmware -C lzma -O u-boot \
 	-a $(CONFIG_SYS_TEXT_BASE) -e $(CONFIG_SYS_UBOOT_START) \
-	-n "U-Boot $(UBOOTRELEASE) for $(BOARD) board"
+	-n "U-Boot $(UBOOTRELEASE)"
 
 u-boot.bin.lzma: u-boot.bin FORCE
 	$(call if_changed,lzma)
@@ -1428,7 +1428,7 @@ $(filter-out tools, $(u-boot-dirs)): tools
 examples: $(filter-out examples, $(u-boot-dirs))
 
 define filechk_uboot.release
-	echo "$(UBOOTVERSION)$$($(CONFIG_SHELL) $(srctree)/scripts/setlocalversion $(srctree))"
+	echo "$(UBOOTVERSION)"
 endef
 
 # Store (new) UBOOTRELEASE string in include/config/uboot.release
