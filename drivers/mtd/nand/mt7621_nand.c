@@ -564,12 +564,17 @@ static void nfc_read_sector_oob(mt7621_nfc_t *nfc, u32 idx, void *out)
 	}
 }
 
+/*
+ * @read_page:	function to read a page according to the ECC generator
+ *		requirements; returns maximum number of bitflips corrected in
+ *		any single ECC step, -EIO hw error
+ */
 static int nfc_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip,
 	u8 *buf, int oob_on, int page)
 {
 	mt7621_nfc_t *nfc = nand_get_controller_data(chip);
 	mt7621_nfc_sel_t *nfc_sel = nand_to_mt7621_chip(chip);
-	int bitflips;
+	int bitflips = 0, ret = 0;
 	int rc, i;
 
 	nfi_setbits16(nfc, NFI_CNFG_REG16,
@@ -581,8 +586,6 @@ static int nfc_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip,
 	nfi_write16(nfc, NFI_CON_REG16,
 		    NFI_BRD | REG_SET_VAL(NFI_SEC, chip->ecc.steps));
 
-	bitflips = 0;
-
 	for (i = 0; i < chip->ecc.steps; i++) {
 		nfc_read_buf(mtd, page_data_ptr(chip, buf, i), chip->ecc.size);
 
@@ -591,7 +594,7 @@ static int nfc_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip,
 		nfc_read_sector_oob(nfc, i, oob_fdm_ptr(chip, i));
 
 		if (rc < 0) {
-			bitflips = -EIO;
+			ret = -EIO;
 		} else {
 			rc = nfc_ecc_correct_check(nfc, nfc_sel,
 				page_data_ptr(chip, buf, i),
@@ -600,9 +603,9 @@ static int nfc_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip,
 			if (rc < 0) {
 				printf("Unrecoverable ECC error at page %u.%u\n",
 				       page, i);
-				bitflips = -EBADMSG;
-			} else if (bitflips >= 0) {
-				bitflips += rc;
+				bitflips = chip->ecc.strength + 1;
+			} else if (rc > bitflips) {
+				bitflips = rc;
 			}
 		}
 	}
@@ -610,6 +613,9 @@ static int nfc_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip,
 	nfc_ecc_decoder_stop(nfc);
 
 	nfi_write16(nfc, NFI_CON_REG16, 0);
+
+	if (ret < 0)
+		return ret;
 
 	return bitflips;
 }
