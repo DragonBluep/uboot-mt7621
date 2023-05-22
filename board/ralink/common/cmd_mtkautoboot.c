@@ -27,6 +27,9 @@ struct mtk_bootmenu_entry {
 	},{
 		.desc = "Load image",
 		.cmd = "mtkload"
+	},{
+		.desc = "Reboot",
+		.cmd = "reset"
 	}
 };
 
