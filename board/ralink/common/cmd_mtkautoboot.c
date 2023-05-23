@@ -112,7 +112,7 @@ static void mtktftploop(void)
 	env_set("loadaddr", tostr(CONFIG_SYS_LOAD_ADDR));
 
 	while(1) {
-		run_command("tftp recovery.bin", 0);
+		run_command("tftpboot recovery.bin", 0);
 		mdelay(2000);
 		for (cnt = 0; cnt < 3; cnt++)
 #ifdef MT7621_USE_GPIO_LED
