@@ -7,6 +7,12 @@
 
 #include <common.h>
 #include <asm-generic/gpio.h>
+#include <led.h>
+
+#if defined(CONFIG_BOARD_MT7621_NAND_TEMPLATE) || \
+	defined(CONFIG_BOARD_MT7621_NOR_TEMPLATE)
+#define MT7621_USE_GPIO_LED
+#endif
 
 struct mtk_bootmenu_entry {
 	const char *desc;
@@ -34,7 +40,8 @@ struct mtk_bootmenu_entry {
 };
 
 #ifdef CONFIG_FAILSAFE_ON_BUTTON
-static inline void mtkledblink(void)
+#ifdef MT7621_USE_GPIO_LED
+static inline void mtk_blinkled(void)
 {
 	mdelay(100);
 #ifdef MT7621_LED_STATUS1
@@ -51,11 +58,50 @@ static inline void mtkledblink(void)
 	gpio_direction_output(MT7621_LED_STATUS2, 1);
 #endif // MT7621_LED_STATUS2
 }
+#else
+/* Get led udevice by dts config property name */
+static int mtk_getled(const char *prop_name, struct udevice **devp)
+{
+	const char *name;
+	int ret;
+
+	name = fdtdec_get_config_string(gd->fdt_blob, prop_name);
+	if (!name)
+		return -ENODATA;
+	ret = led_get_by_label(name, devp);
+	if (ret)
+		debug("%s: get=%d\n", __func__, ret);
+	return ret;
+}
+
+/* Blink LED */
+static inline void mtk_blinkled(struct udevice *led1, int flag1,
+			struct udevice *led2, int flag2)
+{
+	if (flag1)
+		led_set_state(led1, LEDST_OFF);
+	if (flag2)
+		led_set_state(led2, LEDST_ON);
+	mdelay(100);
+	if (flag1)
+		led_set_state(led1, LEDST_ON);
+	if (flag2)
+		led_set_state(led2, LEDST_OFF);
+	mdelay(100);
+}
+#endif // MT7621_USE_GPIO_LED
 
 /* Loop TFTP download mode */
 static void mtktftploop(void)
 {
 	int cnt;
+#ifndef MT7621_USE_GPIO_LED
+	struct udevice *led1, *led2;
+	int flag_led1, flag_led2;
+
+	flag_led1 = !mtk_getled("status1-led", &led1);
+	flag_led2 = !mtk_getled("status2-led", &led2);
+#endif // MT7621_USE_GPIO_LED
 
 	#define _tostr(a)	#a
 	#define tostr(a)	_tostr(a)
@@ -69,7 +115,11 @@ static void mtktftploop(void)
 		run_command("tftp recovery.bin", 0);
 		mdelay(2000);
 		for (cnt = 0; cnt < 3; cnt++)
-			mtkledblink();
+#ifdef MT7621_USE_GPIO_LED
+			mtk_blinkled();
+#else
+			mtk_blinkled(led1, flag_led1, led2, flag_led2);
+#endif // MT7621_USE_GPIO_LED
 	}
 }
 #endif
@@ -85,6 +135,13 @@ static int do_mtkautoboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	u32 delay = CONFIG_MTKAUTOBOOT_DELAY;
 
 #ifdef CONFIG_FAILSAFE_ON_BUTTON
+#ifndef MT7621_USE_GPIO_LED
+	struct udevice *led1, *led2;
+	int flag_led1, flag_led2;
+
+	flag_led1 = !mtk_getled("status1-led", &led1);
+	flag_led2 = !mtk_getled("status2-led", &led2);
+#endif // MT7621_USE_GPIO_LED
 #ifdef MT7621_BUTTON_WPS
 	for (i = 0; i < 5; i++) {
 #else
@@ -93,7 +150,11 @@ static int do_mtkautoboot(cmd_tbl_t *cmdtp, int flag, int argc,
 		if (gpio_get_value(MT7621_BUTTON_RESET) != 0)
 			break;
 
-		mtkledblink();
+#ifdef MT7621_USE_GPIO_LED
+		mtk_blinkled();
+#else
+		mtk_blinkled(led1, flag_led1, led2, flag_led2);
+#endif // MT7621_USE_GPIO_LED
 	}
 
 #ifdef MT7621_BUTTON_WPS
@@ -110,7 +171,11 @@ static int do_mtkautoboot(cmd_tbl_t *cmdtp, int flag, int argc,
 		if (gpio_get_value(MT7621_BUTTON_WPS) != 0)
 			break;
 
-		mtkledblink();
+#ifdef MT7621_USE_GPIO_LED
+		mtk_blinkled();
+#else
+		mtk_blinkled(led1, flag_led1, led2, flag_led2);
+#endif // MT7621_USE_GPIO_LED
 	}
 	if (i == 5) {
 		printf("Enter TFTP download mode by pressing WPS button\n");

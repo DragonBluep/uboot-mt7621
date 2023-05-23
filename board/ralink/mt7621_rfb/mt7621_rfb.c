@@ -7,6 +7,7 @@
 
 #include <common.h>
 #include <environment.h>
+#include <led.h>
 #include <linux/types.h>
 #include <debug_uart.h>
 #include <asm/spl.h>
@@ -86,6 +87,11 @@ int last_stage_init(void)
 	int pinlist[] = MT7621_UNUSED_PIN_LIST;
 
 	pins_unused_init(pinlist, sizeof(pinlist)/sizeof(int));
+
+#ifndef CONFIG_BOARD_MT7621_NOR_TEMPLATE
+	/* configure the default state (auto-probe) */
+	led_default_state();
+#endif // CONFIG_BOARD_MT7621_NOR_TEMPLATE
 
 	/* Sort variables alphabetically if the variable "_sortenv" exists */
 	if (env_get("_sortenv") != NULL) {
