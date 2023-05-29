@@ -537,7 +537,7 @@ extern int		net_restart_wrap;	/* Tried all network devices */
 
 enum proto_t {
 	BOOTP, RARP, ARP, TFTPGET, DHCP, PING, DNS, NFS, CDP, NETCONS, SNTP,
-	TFTPSRV, TFTPPUT, LINKLOCAL, FASTBOOT, WOL, TCP
+	TFTPSRV, TFTPPUT, LINKLOCAL, FASTBOOT, WOL, TCP, NMRP
 };
 
 extern char	net_boot_file_name[1024];/* Boot File name */
@@ -638,6 +638,12 @@ rxhand_f *net_get_arp_handler(void);	/* Get ARP RX packet handler */
 void net_set_arp_handler(rxhand_f *);	/* Set ARP RX packet handler */
 void net_set_icmp_handler(rxhand_icmp_f *f); /* Set ICMP RX handler */
 void net_set_timeout_handler(ulong, thand_f *);/* Set timeout handler */
+#if defined(CONFIG_CMD_NMRP)
+extern void	NmrpSetTimeout(ulong, thand_f *);/* Set timeout handler */
+extern void	NmrpLedSetTimeout(ulong, thand_f *);/* Set timeout handler */
+extern void nmrp_keepalive_send(ulong timestamp);
+extern int  Nmrp_getState(void);
+#endif
 
 /* Network loop state */
 enum net_loop_state {

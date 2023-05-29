@@ -502,3 +502,12 @@ source "lib/Kconfig"
 source "test/Kconfig"
 
 source "failsafe/Kconfig"
+
+menu "TW Options"
+
+config NETGEAR_MODLE_NAME
+	string "EAX12"
+	help
+	  EAX12
+	  
+endmenu		# TW Options

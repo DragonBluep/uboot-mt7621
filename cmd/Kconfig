@@ -1850,4 +1850,13 @@ config CMD_UBIFS
 	help
 	  UBIFS is a file system for flash devices which works on top of UBI.
 
+menu "Nmrp commands"
+
+config CMD_NMRP
+	bool "nmrp"
+	depends on CMD_TFTPSRV
+	help
+	  nmrp
+endmenu
+
 endmenu

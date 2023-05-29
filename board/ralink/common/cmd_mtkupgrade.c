@@ -19,6 +19,9 @@
 
 #include "spl_helper.h"
 #include "flash_helper.h"
+#include "dual_image.h"
+
+#include <aes.h>
 
 #define BUF_SIZE 1024
 
@@ -33,6 +36,30 @@ enum file_type {
 	TYPE_BL_ADV,
 	TYPE_FW
 };
+
+#define ENCRPTED_IMG_TAG  "encrpted_img"
+#define AES_KEY_256  "he9-4+M!)d6=m~we1,q2a3d1n&2*Z^%8$"
+#define AES_NOR_IV  "J%1iQl8$=lm-;8AE@"
+
+typedef  struct
+{
+    char model[32];        /*model name*/
+    char region[32];       /*region*/
+    char version[64];      /*version*/
+    char dateTime[64];     /*date*/
+    unsigned int productHwModel;  /*product hardware model*/
+    char modelIndex;       /*model index - default 0:don't change model in nmrp upgrade - others: change model by index in nmrp upgrade*/
+    char hwIdNum;          /*hw id list num*/
+    char modelNum;         /*model list num*/
+    char reserved0[13];    /*reserved*/
+    char modelHwInfo[200]; /*save hw id list and model list*/
+    char reserved[100];    /*reserved space, if add struct member, please adjust this reserved size to keep the head total size is 512 bytes*/
+} __attribute__((__packed__)) image_head_t;
+
+typedef  struct
+{
+    char checkSum[4];      /*checkSum*/
+} __attribute__((__packed__)) image_tail_t;
 
 static void cli_highlight_input(const char *prompt)
 {
@@ -340,15 +367,19 @@ int get_mtd_part_info(const char *partname, uint64_t *off, uint64_t *size)
 	return 0;
 }
 
-static int check_mtd_bootloader_size(size_t data_size)
+static int check_mtd_bootloader_size(size_t data_size, uint64_t *addr_limit)
 {
 	uint64_t part_off, part_size;
 	const char *part_name = "u-boot";
 
 	if (get_mtd_part_info(part_name, &part_off, &part_size)) {
 		part_name = "Bootloader";
-		if (get_mtd_part_info(part_name, &part_off, &part_size))
+		if (get_mtd_part_info(part_name, &part_off, &part_size)) {
+			if (addr_limit)
+				*addr_limit = 0;
+
 			return CMD_RET_SUCCESS;
+		}
 	}
 
 	if (part_off == 0 && part_size < data_size) {
@@ -362,6 +393,9 @@ static int check_mtd_bootloader_size(size_t data_size)
 			return CMD_RET_FAILURE;
 		}
 	}
+
+	if (addr_limit)
+		*addr_limit = part_off + part_size;
 
 	return CMD_RET_SUCCESS;
 }
@@ -402,38 +436,12 @@ static int prompt_countdown(const char *prompt, int delay)
 	return hit;
 }
 
-static int do_data_verify(void *flashdev, uint64_t offset, size_t len,
-			  const void *buf)
-{
-	const u8 *ptr = (const u8 *)buf;
-	size_t readlen;
-	u8 data[SZ_4K];
-	int ret;
-
-	while (len) {
-		readlen = sizeof(data);
-		if (readlen > len)
-			readlen = len;
-
-		ret = mtk_board_flash_read(flashdev, offset, readlen, data);
-		if (ret)
-			return ret;
-
-		if (memcmp(data, ptr, readlen))
-			return 1;
-
-		offset += readlen;
-		ptr += readlen;
-		len -= readlen;
-	}
-
-	return 0;
-}
 
 static int do_write_bootloader(void *flash, size_t stock_stage2_off,
 			       size_t data_addr, uint32_t data_size,
 			       uint32_t stage1_size, int adv)
 {
+	uint64_t addr_limit;
 	uint32_t erase_size;
 	int ret;
 
@@ -462,8 +470,9 @@ static int do_write_bootloader(void *flash, size_t stock_stage2_off,
 		}
 	}
 
-	if (check_mtd_bootloader_size(stock_stage2_off + data_size) !=
-	    CMD_RET_SUCCESS)
+	ret = check_mtd_bootloader_size(stock_stage2_off + data_size,
+					&addr_limit);
+	if (ret != CMD_RET_SUCCESS)
 		return CMD_RET_FAILURE;
 
 	printf("\n");
@@ -473,7 +482,8 @@ static int do_write_bootloader(void *flash, size_t stock_stage2_off,
 	printf("Erasing from 0x%x to 0x%x, size 0x%x ... ", stock_stage2_off,
 	       stock_stage2_off + erase_size - 1, erase_size);
 
-	ret = mtk_board_flash_erase(flash, stock_stage2_off, erase_size);
+	ret = mtk_board_flash_erase(flash, stock_stage2_off, erase_size,
+				    addr_limit);
 
 	if (ret) {
 		printf("Fail\n");
@@ -489,7 +499,7 @@ static int do_write_bootloader(void *flash, size_t stock_stage2_off,
 	       stock_stage2_off, data_size);
 
 	ret = mtk_board_flash_write(flash, stock_stage2_off, data_size,
-				    (void *) data_addr);
+				    addr_limit, (void *)data_addr);
 
 	if (ret) {
 		printf("Fail\n");
@@ -504,8 +514,8 @@ static int do_write_bootloader(void *flash, size_t stock_stage2_off,
 	printf("Verifying from 0x%x to 0x%x, size 0x%x ... ", stock_stage2_off,
 		stock_stage2_off + data_size - 1, data_size);
 
-	ret = do_data_verify(flash, stock_stage2_off, data_size,
-			     (void *)data_addr);
+	ret = mtk_board_flash_verify(flash, stock_stage2_off, data_size,
+				     addr_limit, (void *)data_addr);
 
 	if (ret) {
 		printf("Fail\n");
@@ -667,6 +677,9 @@ static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size,
 	uint32_t erase_size;
 	uint64_t part_off, part_size, tmp;
 	int ret;
+#ifdef CONFIG_MTK_DUAL_IMAGE_SUPPORT
+	struct di_image_info iif;
+#endif
 
 	if (get_mtd_part_info("firmware", &part_off, &part_size)) {
 		printf(COLOR_ERROR "*** MTD partition 'firmware' does not "
@@ -698,12 +711,27 @@ static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size,
 
 	printf("\n");
 
+#ifdef CONFIG_MTK_DUAL_IMAGE_SUPPORT
+	printf("Verifying image from 0x%zx to 0x%zx, size 0x%x ... ",
+	       data_addr, data_addr + data_size - 1, data_size);
+
+	ret = dual_image_check_single_ram((void *)data_addr, data_size,
+					  "firmware", &iif);
+	if (ret) {
+		printf("Fail\n");
+		return CMD_RET_FAILURE;
+	}
+
+	printf("OK\n");
+#endif
+
 	erase_size = ALIGN(data_size, mtk_board_get_flash_erase_size(flash));
 
 	printf("Erasing from 0x%llx to 0x%llx, size 0x%x ... ", part_off,
 	       part_off + erase_size - 1, erase_size);
 
-	ret = mtk_board_flash_erase(flash, part_off, erase_size);
+	ret = mtk_board_flash_erase(flash, part_off, erase_size,
+				    part_off + part_size);
 
 	if (ret) {
 		printf("Fail\n");
@@ -718,7 +746,7 @@ static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size,
 	       part_off, data_size);
 
 	ret = mtk_board_flash_write(flash, part_off, data_size,
-				    (void *)data_addr);
+				    part_off + part_size, (void *)data_addr);
 
 	if (ret) {
 		printf("Fail\n");
@@ -729,17 +757,41 @@ static int _write_firmware(void *flash, size_t data_addr, uint32_t data_size,
 
 	printf("OK\n");
 
+#ifdef CONFIG_MTK_DUAL_IMAGE_SUPPORT
+	printf("Verifying flash from 0x%llx to 0x%llx, size 0x%x ... ",
+	       part_off, part_off + data_size - 1, data_size);
+
+	ret = mtk_board_flash_verify(flash, part_off, data_size,
+				     part_off + part_size, (void *)data_addr);
+
+	if (ret) {
+		printf("Fail\n");
+		printf(COLOR_ERROR "*** Verification [%llx-%llx] failed! ***"
+		       COLOR_NORMAL "\n", part_off,
+		       part_off + data_size - 1);
+		printf(COLOR_ERROR "*** Firmware is damaged, please retry! ***"
+		       COLOR_NORMAL "\n");
+		return CMD_RET_FAILURE;
+	}
+
+	printf("OK\n");
+
+#ifdef CONFIG_MTK_DUAL_IMAGE_UPGRADE_BACKUP
+	printf("Updating backup image ... ");
+
+	ret = dual_image_update_backup(&iif);
+
+	if (ret) {
+		printf("Fail\n");
+		return CMD_RET_FAILURE;
+	}
+
+	printf("OK\n");
+#endif
+#endif
+
 	printf("\n" COLOR_PROMPT "*** Firmware upgrade completed! ***"
 	       COLOR_NORMAL "\n");
-
-#ifdef CONFIG_MTK_DUAL_IMAGE_SUPPORT
-	if (!get_mtd_part_info(CONFIG_MTK_DUAL_IMAGE_PARTNAME_BACKUP,
-			      &part_off, &part_size)) {
-		/* Force backup image to be upgraded on next bootup */
-		mtk_board_flash_erase(flash, part_off,
-			mtk_board_get_flash_erase_size(flash));
-	}
-#endif
 
 	if (no_prompt)
 		return CMD_RET_SUCCESS;
@@ -908,6 +960,207 @@ U_BOOT_CMD(mtkupgrade, 2, 0, do_mtkupgrade,
 	"          bl      - Bootloader\n"
 	"          bladv   - Bootloader (Advanced)\n"
 	"          fw      - Firmware\n"
+);
+
+extern void led_time_tick(ulong times);
+
+int decrypt_image(void)
+{
+    ulong size = 0;
+    ulong file_size = 0;
+    unsigned char *src_addr = NULL;
+    unsigned char *dst_addr = NULL;
+    image_head_t *image_head = NULL;
+    char *image_tag = NULL;
+    char *fenv_hwid = NULL;
+    char *fenv_model = NULL;
+    //char *fenv_region = NULL;
+    ulong image_size = 0;
+    ulong encrypted_size = 0;
+    ulong block_size = 0;
+    ulong checksum = 0;
+    ulong curr_checksum = 0;
+    unsigned char key_exp[AES256_EXPAND_KEY_LENGTH] = {0};
+    unsigned int aes_blocks = 0;
+
+    env_set("decrypt_result", "bad");
+    env_set("filesize_result", "bad");
+
+    size = sizeof(image_head_t) + strlen(ENCRPTED_IMG_TAG) + 4 * 2;
+
+    file_size = env_get_hex("filesize", 0);
+    if (file_size < size)
+    {
+        printf("Image head not found!\n");
+        return 1;
+    }
+
+    src_addr = (unsigned char *)load_addr;
+    dst_addr = (unsigned char *)load_addr;
+
+    image_head = (image_head_t *)src_addr;
+    src_addr += sizeof(image_head_t);
+
+    image_tag = (char *)src_addr;
+    if (strncmp(image_tag, ENCRPTED_IMG_TAG, strlen(ENCRPTED_IMG_TAG)))
+    {
+        printf("Encrpted tag not found!\n");
+        return 1;
+    }
+    src_addr += strlen(ENCRPTED_IMG_TAG);
+
+    printf("Image is encrypted\n");
+    printf("model: %s\n", image_head->model);
+    printf("region: %s\n", image_head->region);
+    printf("version: %s\n", image_head->version);
+    printf("dateTime: %s\n", image_head->dateTime);
+    printf("CONFIG_NETGEAR_MODLE_NAME: %s\n", CONFIG_NETGEAR_MODLE_NAME);
+    printf("productHwModel: %d\n", image_head->productHwModel);
+    printf("modelIndex: %d\n", image_head->modelIndex);
+    printf("hwIdNum: %d\n", image_head->hwIdNum);
+    printf("modelNum: %d\n", image_head->modelNum);
+    printf("modelHwInfo: %s\n", image_head->modelHwInfo);
+
+    //
+    if (image_head->modelIndex != 0 && image_head->modelIndex <= image_head->modelNum)
+    {
+        char loop = 0;
+        char delims[] = ";";
+        char *result = NULL;
+        char achModelHwInfo[512] = { 0 };
+
+        strcpy(achModelHwInfo, image_head->modelHwInfo);
+        result = strtok(achModelHwInfo, delims);
+        //skip hw id
+        while(result != NULL && loop < image_head->hwIdNum)
+        {
+            printf("hwid is \"%s\"\n", result);
+            loop++;
+            result = strtok(NULL, delims);
+        }
+        //model list
+        loop = 0;
+        while(result != NULL && loop < image_head->modelNum)
+        {
+            loop++;
+            printf("model[%d] is \"%s\"\n", loop, result);
+
+            if (loop == image_head->modelIndex)
+            {
+                env_set("fenv_model", result);
+                break;
+            }
+            result = strtok(NULL, delims);  
+        }
+    }
+
+    fenv_hwid = env_get("fenv_hw_id");
+    printf("fenv_hwid: %s\n", fenv_hwid);
+    if (!fenv_hwid || !strstr(image_head->modelHwInfo, fenv_hwid))
+    {
+        printf("Image hw id not match!\n");
+        return 1;
+    }
+
+    fenv_model = env_get("fenv_model");
+    printf("fenv_model: %s\n", fenv_model);
+    if (!fenv_model || !strstr(image_head->modelHwInfo, fenv_model))
+    {
+        printf("Image model not match!\n");
+        return 1;
+    }
+#if 0
+    fenv_region = env_get("fenv_region");
+    if (!fenv_region || strcmp(fenv_region, image_head->region))
+    {
+        printf("Image region not match!\n");
+        return 1;
+    }
+#endif
+
+    image_size = ntohl(*(ulong *)src_addr);
+    src_addr += sizeof(ulong);
+    printf("size: 0x%lx\n", image_size);
+
+    encrypted_size = DIV_ROUND_UP(image_size, AES_BLOCK_LENGTH) * AES_BLOCK_LENGTH;
+
+    block_size = ntohl(*(ulong *)src_addr);
+    src_addr += sizeof(ulong);
+    printf("block size: 0x%lx\n", block_size);
+    if (block_size % AES_BLOCK_LENGTH)
+    {
+        printf("Image block size not times of AES_BLOCK_LENGTH!\n");
+        return 1;
+    }
+
+    if (file_size < (size + encrypted_size + sizeof(image_tail_t)))
+    {
+        printf("Image incomplete!\n");
+        return 1;
+    }
+
+    checksum = ntohl(*(ulong *)(src_addr + encrypted_size));
+    printf("checksum: 0x%lx\n", checksum);
+
+    curr_checksum = crc32_no_comp(0, (uchar *)load_addr, size + encrypted_size);
+    printf("curr_checksum: 0x%lx\n", curr_checksum);
+    if (curr_checksum != checksum)
+    {
+        printf("Image checksum error!\n");
+        return 1;
+    }
+
+    printf("Decrypt image...\n");
+
+    aes_expand_key((u8 *)AES_KEY_256, AES256_KEY_LENGTH, key_exp);
+    for (size = 0; size < encrypted_size; size += block_size)
+    {
+        if (size + block_size > encrypted_size)
+        {
+            block_size = encrypted_size - size;
+        }
+
+        aes_blocks = DIV_ROUND_UP(block_size, AES_BLOCK_LENGTH);
+        aes_cbc_decrypt_blocks(AES256_KEY_LENGTH, key_exp, (u8 *)AES_NOR_IV, (u8 *)src_addr, (u8 *)dst_addr, aes_blocks);
+
+        src_addr += block_size;
+        dst_addr += block_size;
+        led_time_tick(get_timer(0));
+    }
+    printf("Decrypt finish\n");
+
+    env_set_hex("filesize", image_size);
+
+    env_set("filesize_result", "good");
+
+    env_set("decrypt_result", "good");
+
+    return 0;
+}
+
+static int do_write_img(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+{
+    size_t data_load_addr;
+    uint32_t data_size = 0;
+
+    //
+    if (0 != decrypt_image())
+        return CMD_RET_FAILURE;
+
+    data_load_addr = load_addr;
+
+    data_size = env_get_hex("filesize", 0);
+
+    /* Write data */
+    if (write_firmware_failsafe(data_load_addr, data_size) != CMD_RET_SUCCESS)
+        return CMD_RET_FAILURE;
+
+    return CMD_RET_SUCCESS;
+}
+
+U_BOOT_CMD(writeimg, 2, 0, do_write_img,
+    "write firmware",
+    "write firmware\n"
 );
 
 static int run_image(size_t data_addr, uint32_t data_size)

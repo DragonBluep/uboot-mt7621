@@ -31,19 +31,12 @@ config MTK_DUAL_IMAGE_PARTNAME_BACKUP
 	help
 	  The MTD partition name of the backup image.
 
-config MTK_DUAL_IMAGE_SQUASHFS_DATA_CHECK
-	bool "Check squashfs rootfs integrity"
+config MTK_DUAL_IMAGE_UPGRADE_BACKUP
+	bool "Update backup image after upgrading main image"
 	default y
 	depends on MTK_DUAL_IMAGE_SUPPORT
 	help
-	  Check the integrity of the squashfs rootfs.
-	  Please note that squashfs has no checksum for integrity. This
-	  option only checks if the rootfs has non-0xff byte in the last byte,
-	  and 0xff for the next byte, which is not always accurate.
-
-config MTK_DUAL_IMAGE_RESTORE_KERNEL_ONLY
-	bool "Restore kernel only"
-	default n
-	depends on MTK_DUAL_IMAGE_SUPPORT
-	help
-	  If one image is broken, only restore its kernel part/
+	  Select this if you want keep the backup image synced with the main
+	  image. If selected, the backup image MTD partition will be erase
+	  after successfully upgraded the main image, which allows the
+	  backup image to be updated in next dual image checking stage.

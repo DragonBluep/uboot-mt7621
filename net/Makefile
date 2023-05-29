@@ -28,6 +28,7 @@ obj-$(CONFIG_CMD_WOL)  += wol.o
 
 obj-$(CONFIG_TCP)  += tcp.o
 obj-$(CONFIG_HTTPD)  += httpd.o
+obj-$(CONFIG_CMD_NMRP)  += nmrp.o
 
 # Disable this warning as it is triggered by:
 # sprintf(buf, index ? "foo%d" : "foo", index)

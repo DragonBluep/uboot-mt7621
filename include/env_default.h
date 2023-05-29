@@ -31,6 +31,9 @@ const uchar default_environment[] = {
 #ifdef	CONFIG_USE_BOOTARGS
 	"bootargs="	CONFIG_BOOTARGS			"\0"
 #endif
+#ifdef	CONFIG_CMD_NMRP
+	"boot_wr_img=writeimg\0"
+#endif
 #ifdef	CONFIG_BOOTCOMMAND
 	"bootcmd="	CONFIG_BOOTCOMMAND		"\0"
 #endif

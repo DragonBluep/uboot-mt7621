@@ -71,7 +71,7 @@ static int nand_read_page_hwecc(struct mtd_info *mtd, void *buf,
 	chip->cmdfunc(mtd, NAND_CMD_READ0, 0x0, page);
 
 	ret = chip->ecc.read_page(mtd, chip, buf, 1, page);
-	if (ret < 0)
+	if (ret < 0 || ret > chip->ecc.strength)
 		return -1;
 
 	return 0;

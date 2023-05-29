@@ -457,17 +457,35 @@ static void nfc_write_byte(struct mtd_info *mtd, u8 byte)
 	nfc_pio_write(mtd, byte, 1);
 }
 
+extern void led_time_tick(ulong times);
+
 static void nfc_write_buf(struct mtd_info *mtd, const u8 *buf, int len)
 {
 	int i;
+	int j = 0;
+	int k = 0;
 	const u32 *p = (const u32 *) buf;
 
 	if ((size_t) buf % sizeof(u32) || len % sizeof(u32)) {
-		for (i = 0; i < len; i++)
+		for (i = 0; i < len; i++) {
 			nfc_pio_write(mtd, buf[i], 1);
+			j++;
+			if (j%256 == 0)
+			{
+				k++;
+				led_time_tick(get_timer(0));
+			}
+		}
 	} else {
-		for (i = 0; i < (len / sizeof (u32)); i++)
+		for (i = 0; i < (len / sizeof (u32)); i++) {
 			nfc_pio_write(mtd, p[i], 0);
+			j++;
+			if (j%256 == 0)
+			{
+				k++;
+				led_time_tick(get_timer(0));
+			}
+		}
 	}
 }
 
@@ -611,7 +629,10 @@ static int nfc_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip,
 
 	nfi_write16(nfc, NFI_CON_REG16, 0);
 
-	return bitflips;
+	if (bitflips == -EBADMSG)
+		return chip->ecc.strength + 1;
+	else
+		return bitflips;
 }
 
 static int nfc_read_page_raw(struct mtd_info *mtd, struct nand_chip *chip,
@@ -835,7 +856,7 @@ static int nfc_block_markbad(struct mtd_info *mtd, loff_t ofs)
 	/* Backup original OOB data */
 	memcpy(nfc_sel->oob_mb_cache, chip->oob_poi, mtd->oobsize);
 
-	/* Create bad block mark OOD bata */
+	/* Create bad block mark OOB bata */
 	memset(chip->oob_poi, 0xff, mtd->oobsize);
 	chip->oob_poi[chip->badblockpos] = 0;
 
@@ -850,7 +871,7 @@ static int nfc_block_markbad(struct mtd_info *mtd, loff_t ofs)
 
 		do {
 			page = lofs >> mtd->writesize_shift;
-			res = nfc_write_oob_raw(mtd, chip, page);
+			res = nfc_write_oob_std(mtd, chip, page);
 			if (!ret)
 				ret = res;
 
@@ -863,7 +884,7 @@ static int nfc_block_markbad(struct mtd_info *mtd, loff_t ofs)
 	i = 0;
 	do {
 		page = ofs >> mtd->writesize_shift;
-		res = nfc_write_oob_raw(mtd, chip, page);
+		res = nfc_write_oob_std(mtd, chip, page);
 		if (!ret)
 			ret = res;
 

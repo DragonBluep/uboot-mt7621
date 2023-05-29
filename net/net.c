@@ -119,6 +119,9 @@
 #endif
 #include "tcp.h"
 
+#if defined(CONFIG_CMD_NMRP)
+#include "nmrp.h"
+#endif
 /** BOOTP EXTENTIONS **/
 
 /* Our subnet mask (0=unknown) */
@@ -208,6 +211,22 @@ static ulong	time_start;
 static ulong	time_delta;
 /* THE transmit packet */
 uchar *net_tx_packet;
+
+#if defined(CONFIG_CMD_NMRP)
+/* Current timeout handler */
+static thand_f *nmrpTimeHandler;
+/* Time base value */
+static ulong	nmrpTimeStart;
+/* Current timeout value */
+static ulong	nmrpTimeDelta;
+
+/* Current timeout handler */
+static thand_f *nmrpLedTimeHandler;
+/* Time base value */
+static ulong	nmrpLedTimeStart;
+/* Current timeout value */
+static ulong	nmrpLedTimeDelta;
+#endif
 
 static int net_check_prereq(enum proto_t protocol);
 
@@ -537,6 +556,11 @@ restart:
 			tcp_start();
 			break;
 #endif
+#if defined(CONFIG_CMD_NMRP)
+        case NMRP:
+            NmrpStart();
+            break;
+#endif
 		default:
 			break;
 		}
@@ -641,6 +665,21 @@ restart:
 		if (net_state == NETLOOP_FAIL)
 			ret = net_start_again();
 
+#if defined(CONFIG_CMD_NMRP)
+        if (nmrpTimeHandler && ((get_timer(0) - nmrpTimeStart) > nmrpTimeDelta)) {
+            thand_f *x;
+            x = nmrpTimeHandler;
+            nmrpTimeHandler = (thand_f *)0;
+            (*x)();
+        }
+
+        if (nmrpLedTimeHandler && ((get_timer(0) - nmrpLedTimeStart) > nmrpLedTimeDelta)) {
+            thand_f *x;
+            x = nmrpLedTimeHandler;
+            nmrpLedTimeHandler = (thand_f *)0;
+            (*x)();
+        }
+#endif
 		switch (net_state) {
 		case NETLOOP_RESTART:
 			net_restarted = 1;
@@ -686,6 +725,12 @@ done:
 	net_set_udp_handler(NULL);
 	net_set_icmp_handler(NULL);
 #endif
+
+#ifdef CONFIG_CMD_NMRP
+    /* Clear NMRP state machine*/
+    Nmrp_cleanup();
+#endif
+
 	net_set_state(prev_net_state);
 	return ret;
 }
@@ -811,6 +856,41 @@ void net_set_timeout_handler(ulong iv, thand_f *f)
 		time_delta = iv * CONFIG_SYS_HZ / 1000;
 	}
 }
+
+
+#if defined(CONFIG_CMD_NMRP)
+void
+NmrpSetTimeout(ulong iv, thand_f *f)
+{
+	if (iv == 0) {
+		debug_cond(DEBUG_INT_STATE,
+			"--- NetLoop timeout handler cancelled\n");
+		nmrpTimeHandler = (thand_f *)0;
+	} else {
+		debug_cond(DEBUG_INT_STATE,
+			"--- NetLoop timeout handler set (%p)\n", f);
+		nmrpTimeHandler = f;
+		nmrpTimeStart = get_timer(0);
+		nmrpTimeDelta = iv * CONFIG_SYS_HZ / 1000;
+	}
+}
+
+void
+NmrpLedSetTimeout(ulong iv, thand_f *f)
+{
+	if (iv == 0) {
+		debug_cond(DEBUG_INT_STATE,
+			"--- NetLoop timeout handler cancelled\n");
+		nmrpLedTimeHandler = (thand_f *)0;
+	} else {
+		debug_cond(DEBUG_INT_STATE,
+			"--- NetLoop timeout handler set (%p)\n", f);
+		nmrpLedTimeHandler = f;
+		nmrpLedTimeStart = get_timer(0);
+		nmrpLedTimeDelta = iv * CONFIG_SYS_HZ / 1000;
+	}
+}
+#endif
 
 int net_send_udp_packet(uchar *ether, struct in_addr dest, int dport, int sport,
 		int payload_len)
@@ -1173,6 +1253,13 @@ void net_process_received_packet(uchar *in_packet, int len)
 		rarp_receive(ip, len);
 		break;
 #endif
+
+#ifdef CONFIG_CMD_NMRP
+        case PROT_NMRP:
+            NmrpReceive(et, ip, len);
+            break;
+#endif
+
 	case PROT_IP:
 		debug_cond(DEBUG_NET_PKT, "Got IP\n");
 		/* Before we start poking the header, make sure it is there */

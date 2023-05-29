@@ -7,6 +7,7 @@
 
 #include <common.h>
 #include <linux/types.h>
+#include <linux/sizes.h>
 #include <debug_uart.h>
 #include <asm/spl.h>
 #include <asm/io.h>
@@ -121,7 +122,19 @@ size_t mtk_board_get_flash_erase_size(void *flashdev)
 	return flash->erase_size;
 }
 
-int mtk_board_flash_erase(void *flashdev, uint64_t offset, uint64_t len)
+
+int mtk_board_flash_adjust_offset(void *flashdev, uint64_t base,
+				  uint64_t offset, uint64_t limit,
+				  uint64_t *result)
+{
+	if (result)
+		*result = offset;
+
+	return 0;
+}
+
+int mtk_board_flash_erase(void *flashdev, uint64_t offset, uint64_t len,
+			  uint64_t limit)
 {
 	struct spi_flash *flash = (struct spi_flash *)flashdev;
 
@@ -129,7 +142,7 @@ int mtk_board_flash_erase(void *flashdev, uint64_t offset, uint64_t len)
 }
 
 int mtk_board_flash_read(void *flashdev, uint64_t offset, size_t len,
-			 void *buf)
+			 uint64_t limit, void *buf)
 {
 	struct spi_flash *flash = (struct spi_flash *)flashdev;
 
@@ -137,10 +150,63 @@ int mtk_board_flash_read(void *flashdev, uint64_t offset, size_t len,
 }
 
 int mtk_board_flash_write(void *flashdev, uint64_t offset, size_t len,
-			  const void *buf)
+			  uint64_t limit, const void *buf)
 {
 	struct spi_flash *flash = (struct spi_flash *)flashdev;
 
 	return spi_flash_write(flash, offset, len, buf);
+}
+
+int mtk_board_flash_verify_cust(void *flashdev, uint64_t offset, size_t len,
+				uint64_t limit, const void *buf, void *vbuf,
+				size_t vbuf_size)
+{
+	struct spi_flash *flash = (struct spi_flash *)flashdev;
+	const u8 *ptr = (const u8 *)buf;
+	uint64_t end_lim;
+	size_t readlen;
+	int ret;
+
+	if (limit)
+		end_lim = limit;
+	else
+		end_lim = flash->size;
+
+	while (len && offset < end_lim) {
+		readlen = vbuf_size;
+		if (readlen > len)
+			readlen = len;
+
+		ret = spi_flash_read(flash, offset, readlen, vbuf);
+		if (ret) {
+			printf("Read failure at 0x%llx, err = %d\n", offset,
+			       ret);
+			return ret;
+		}
+
+		if (memcmp(vbuf, ptr, readlen))
+			return 1;
+
+		offset += readlen;
+		ptr += readlen;
+		len -= readlen;
+	}
+
+	if (len) {
+		printf("Incomplete data verification end at 0x%08llx, 0x%zx left\n",
+		       offset, len);
+		return 1;
+	}
+
+	return 0;
+}
+
+int mtk_board_flash_verify(void *flashdev, uint64_t offset, size_t len,
+			   uint64_t limit, const void *buf)
+{
+	uint8_t data[SZ_4K];
+
+	return mtk_board_flash_verify_cust(flashdev, offset, len, limit, buf,
+					   data, sizeof(data));
 }
 #endif
