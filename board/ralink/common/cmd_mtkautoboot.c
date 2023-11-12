@@ -145,7 +145,7 @@ static int do_mtkautoboot(cmd_tbl_t *cmdtp, int flag, int argc,
 #ifdef MT7621_BUTTON_WPS
 	for (i = 0; i < 5; i++) {
 #else
-	for (i = 0; i < 30; i++) {
+	for (i = 0; i < 15; i++) {
 #endif
 		if (gpio_get_value(MT7621_BUTTON_RESET) != 0)
 			break;
@@ -160,7 +160,7 @@ static int do_mtkautoboot(cmd_tbl_t *cmdtp, int flag, int argc,
 #ifdef MT7621_BUTTON_WPS
 	if (i == 5) {
 #else
-	if (i >= 5 && i < 30) {
+	if (i >= 5 && i < 15) {
 #endif
 		printf("Enter web failsafe mode by pressing reset button\n");
 		run_command("httpd", 0);
@@ -180,7 +180,7 @@ static int do_mtkautoboot(cmd_tbl_t *cmdtp, int flag, int argc,
 	if (i == 5) {
 		printf("Enter TFTP download mode by pressing WPS button\n");
 #else
-	if (i == 30) {
+	if (i == 15) {
 		printf("Enter TFTP download mode by pressing reset button\n");
 #endif
 		printf("Load image \"recovery.bin\" to RAM and then boot it\n");

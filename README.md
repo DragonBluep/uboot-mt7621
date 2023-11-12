@@ -64,6 +64,6 @@ TTL serial port baud rate, 57600 or 115200
    (blink 5 times), then you will enter into WebUI recovery mode. You can  
    open http://192.168.1.1 in the browser to upload firmware.
 
-   b) Hold the button until the status LED no longer blinks (blink 6 seconds  
+   b) Hold the button until the status LED no longer blinks (blink 3 seconds  
    in total), then you will enter into TFTP download mode. You can upload  
    **initramfs** kernel image `recovery.bin` via TFTP server such as tftpd64.
