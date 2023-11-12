@@ -62,49 +62,153 @@
 			pinctrl-0 = <&state_default>;
 
 			state_default: pinmux_conf {
-				uart1 {
+				gpio0-gpio_pins {
+					groups = "gpio0";
+					function = "gpio";
+					bias-pull-up;
+					input-schmitt-enable;
+					drive-strength = <4>;
+					slew-rate = <1>;
+				};
+
+				uart1_pins {
 					groups = "uart1";
 					function = "uart1";
+					bias-pull-up;
+					input-schmitt-enable;
+					drive-strength = <4>;
+					slew-rate = <1>;
 				};
 
-				gpio {
-					groups = "i2c", "uart2", "uart3", "pcie";
+				i2c-gpio_pins {
+					groups = "i2c";
 					function = "gpio";
+					bias-pull-up;
+					input-schmitt-enable;
+					drive-strength = <4>;
+					slew-rate = <1>;
 				};
 
-				jtag {
+				uart3-gpio_pins {
+					groups = "uart3";
+					function = "gpio";
+					bias-pull-up;
+					input-schmitt-enable;
+					drive-strength = <4>;
+					slew-rate = <1>;
+				};
+
+				uart2-gpio_pins {
+					groups = "uart2";
+					function = "gpio";
+					bias-pull-up;
+					input-schmitt-enable;
+					drive-strength = <4>;
+					slew-rate = <1>;
+				};
+
+				jtag-gpio_pins {
 					groups = "jtag";
-					function = "jtag";
+					function = "gpio";
+					bias-pull-up;
+					input-schmitt-enable;
+					drive-strength = <4>;
+					slew-rate = <1>;
 				};
 
-				wdt {
+				wdt-gpio_pins {
 					groups = "wdt";
-					function = "wdt rst";
+					function = "gpio";
+					bias-pull-up;
+					input-schmitt-enable;
+					drive-strength = <4>;
+					slew-rate = <1>;
 				};
 
-				mdio {
+				pcie-gpio_pins {
+					groups = "pcie";
+					function = "gpio";
+					bias-pull-up;
+					input-schmitt-enable;
+					drive-strength = <4>;
+					slew-rate = <1>;
+				};
+
+				rgmii2-gpio_pins {
+					groups = "rgmii2";
+					function = "gpio";
+					bias-pull-up;
+					input-schmitt-enable;
+					drive-strength = <2>;
+					slew-rate = <1>;
+				};
+
+				spi_pins {
+					groups = "spi";
+					function = "spi";
+					bias-pull-up;
+					input-schmitt-enable;
+					drive-strength = <4>;
+					slew-rate = <1>;
+				};
+
+				sdhci-gpio_pins {
+					groups = "sdhci";
+					function = "gpio";
+					bias-pull-up;
+					input-schmitt-enable;
+					drive-strength = <4>;
+					slew-rate = <1>;
+				};
+
+				spi-nand_pins {
+					groups = "spi";
+					function = "nand1";
+					bias-pull-up;
+					input-schmitt-enable;
+					drive-strength = <4>;
+					slew-rate = <1>;
+				};
+
+				sdhci-nand_pins {
+					groups = "sdhci";
+					function = "nand2";
+					bias-pull-up;
+					input-schmitt-enable;
+					drive-strength = <4>;
+					slew-rate = <1>;
+				};
+
+				mdio_pins {
 					groups = "mdio";
 					function = "mdio";
-				};
-
-				mdio_pconf {
-					groups = "mdio";
+					bias-disable;
+					input-schmitt-enable;
 					drive-strength = <2>;
+					slew-rate = <1>;
 				};
 
-				rgmii2 {
+				rgmii2_pins {
 					groups = "rgmii2";
 					function = "rgmii2";
+					bias-disable;
+					input-schmitt-enable;
+					drive-strength = <2>;
+					slew-rate = <1>;
 				};
 
-				rgmii1 {
+				rgmii1_pins {
 					groups = "rgmii1";
 					function = "rgmii1";
 				};
 
-				esw {
+				esw_pins {
 					groups = "esw";
 					function = "esw int";
+					bias-disable;
+					input-schmitt-enable;
+					drive-strength = <2>;
+					slew-rate = <1>;
 				};
 			};
 		};
@@ -206,7 +310,7 @@
 
 		i2c: i2c@0 {
 			compatible = "i2c-gpio";
-	                i2c-gpio,delay-us = <3>;
+			i2c-gpio,delay-us = <3>;
 			status = "disabled";
 
 			#address-cells = <1>;
