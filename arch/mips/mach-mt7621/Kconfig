@@ -80,6 +80,10 @@ config BOARD_DLINK_DIR878A1
 	bool "D-Link DIR-878 A1 Wireless Router"
 	select SOC_MT7621
 
+config BOARD_LINKSURE_SG5
+	bool "LinkSure SG5 Wireless Router"
+	select SOC_MT7621
+
 endchoice
 
 config SPL_ALIGN_TO

@@ -29,6 +29,8 @@
 #elif defined(CONFIG_BOARD_DLINK_DIR878A1)
 #define MT7621_BUTTON_RESET	15
 #define MT7621_BUTTON_WPS	18
+#elif defined(CONFIG_BOARD_LINKSURE_SG5)
+#define MT7621_BUTTON_RESET	23
 #endif
 
 struct mtk_bootmenu_entry {
