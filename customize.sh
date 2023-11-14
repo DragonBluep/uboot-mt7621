@@ -71,7 +71,7 @@ else
 	exit 1
 fi
 
-echo "set DRAM frequency: $7 MHz"
+echo "set DRAM frequency: $7 MT/s"
 echo "CONFIG_MT7621_DRAM_FREQ_$7_LEGACY=y" >> ${DEFCONFIG}
 
 echo "Parse DDR init parameters: $8"
@@ -99,6 +99,10 @@ DDR3-256MiB)
 	;;
 DDR3-512MiB)
 	echo "CONFIG_MT7621_DRAM_DDR3_4096M_LEGACY=y" >> ${DEFCONFIG}
+	if [ -n $(cat ${DEFCONFIG} | grep MT7621_DRAM_FREQ_1200_LEGACY) ]; then
+		echo "The max DRAM speed for 512 MiB RAM is 1066 MT/s"
+		sed -i 's/MT7621_DRAM_FREQ_1200_LEGACY/MT7621_DRAM_FREQ_1066_LEGACY/' ${DEFCONFIG}
+	fi
 	;;
 DDR3-128MiB-KGD)
 	echo "CONFIG_MT7621_DRAM_DDR3_1024M_KGD_LEGACY=y" >> ${DEFCONFIG}
