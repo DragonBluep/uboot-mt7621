@@ -85,8 +85,8 @@
 	status = "okay";
 };
 
-&pcie {
-   status = "okay";
-
-   reset-gpios = <&gpio 19 GPIO_ACTIVE_LOW>,<&gpio 26 GPIO_ACTIVE_LOW>;
-};
+#&pcie {
+#   status = "okay";
+#
+#   reset-gpios = <&gpio 19 GPIO_ACTIVE_LOW>,<&gpio 26 GPIO_ACTIVE_LOW>;
+#};
