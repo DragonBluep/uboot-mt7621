@@ -65,6 +65,7 @@
 				uart1 {
 					groups = "uart1";
 					function = "uart1";
+					bias-pull-up;
 				};
 
 				gpio {
@@ -95,6 +96,7 @@
 				rgmii2 {
 					groups = "rgmii2";
 					function = "rgmii2";
+					drive-strength = <4>;
 				};
 
 				rgmii1 {
