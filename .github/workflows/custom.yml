@@ -11,6 +11,8 @@ on:
         - 'NOR'
         - 'NAND'
         - 'NAND-NMBM'
+        - 'NAND-AX'
+        - 'NAND-NMBM-AX'
       mtdparts:
         description: 'MTD Partition Table'
         required: true
