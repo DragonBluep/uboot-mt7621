@@ -89,7 +89,7 @@ jobs:
       - name: Install essential packages
         run: |
           sudo apt-get update
-          sudo apt-get install swig python2
+          sudo apt-get install swig python-dev
           echo 'switch to python2 as default'
           sudo rm /usr/bin/python
           sudo ln -s /usr/bin/python2 /usr/bin/python
