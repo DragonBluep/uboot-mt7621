@@ -88,11 +88,14 @@ jobs:
 
       - name: Install essential packages
         run: |
-          echo "deb http://archive.ubuntu.com/ubuntu/ focal universe" | sudo tee /etc/apt/sources.list.d/focal.list
           sudo apt-get update
-          sudo apt-get install swig python2-dev
+          sudo apt-get install swig
           echo 'switch to python2 as default'
           sudo rm /usr/bin/python
+          wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tar.xz
+          tar -xJf Python-2.7.18.tar.xz
+          cd Python-2.7.18
+          ./configure && sudo make && sudo make install
           sudo ln -s /usr/bin/python2 /usr/bin/python
 
       - name: Download OpenWrt toolchain
